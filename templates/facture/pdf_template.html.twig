@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Facture {{ facture.numeroFacture }}</title>
+    <style>
+        body { font-family: sans-serif; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 5px; border: 1px solid #333; text-align: left; }
+    </style>
+</head>
+<body>
+    <h1>Facture {{ facture.numeroFacture }}</h1>
+    <p>Date: {{ facture.dateFacture|date('d/m/Y') }}</p>
+
+    <h2>Fournisseur</h2>
+    <p>{{ facture.nomFournisseur }}<br>SIREN: {{ facture.sirenFournisseur }}</p>
+
+    <h2>Acheteur</h2>
+    <p>{{ facture.nomAcheteur }}<br>SIREN: {{ facture.sirenAcheteur }}</p>
+
+    <h2>Montants</h2>
+    <table>
+        <tr><th>Montant HT</th><td>{{ facture.totalHT }}</td></tr>
+        <tr><th>TVA</th><td>{{ facture.totalTVA }}</td></tr>
+        <tr><th>Total TTC</th><td>{{ facture.totalTTC }}</td></tr>
+        <tr><th>Net à payer</th><td>{{ facture.netAPayer }}</td></tr>
+    </table>
+</body>
+</html>

@@ -1,0 +1,137 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Modifier la Facture
+	{{ facture.numeroFacture }}
+{% endblock %}
+
+{% block body %}
+	<div class="max-w-5xl mx-auto bg-white shadow rounded-lg p-6">
+		<h1 class="text-2xl font-bold mb-6 text-gray-800">✏️ Modifier la Facture</h1>
+
+		{{ form_start(form) }}
+
+		<div class="grid grid-cols-2 gap-4">
+			<div>{{ form_row(form.numeroFacture) }}</div>
+			<div>{{ form_row(form.dateFacture) }}</div>
+			<div>{{ form_row(form.dateEcheance) }}</div>
+			<div>{{ form_row(form.nomFournisseur) }}</div>
+			<div>{{ form_row(form.nomAcheteur) }}</div>
+			<div>{{ form_row(form.totalHT) }}</div>
+			<div>{{ form_row(form.totalTTC) }}</div>
+		</div>
+
+		<h2 class="text-xl font-semibold mt-8 mb-4 text-gray-700">🧾 Lignes de facture</h2>
+
+		<div id="facture-lignes" data-prototype="{{ form_widget(form.lignes.vars.prototype)|e('html_attr') }}" class="space-y-4">
+
+			{% for ligneForm in form.lignes %}
+				<div class="ligne-item border p-4 rounded-md shadow-sm bg-gray-50">
+					{{ form_row(ligneForm.designation) }}
+					{{ form_row(ligneForm.reference) }}
+					{{ form_row(ligneForm.quantite) }}
+					{{ form_row(ligneForm.unite) }}
+					{{ form_row(ligneForm.prixUnitaireHT) }}
+					{{ form_row(ligneForm.tauxTVA) }}
+					{{ form_row(ligneForm.montantHT) }}
+					{{ form_row(ligneForm.montantTVA) }}
+					{{ form_row(ligneForm.montantTTC) }}
+
+					<button type="button" class="remove-ligne bg-red-500 text-white px-3 py-1 rounded mt-2 hover:bg-red-600">
+						❌ Supprimer la ligne
+					</button>
+				</div>
+			{% endfor %}
+			{# <-- la boucle est fermée correctement #}
+		</div>
+
+		<button type="button" id="add-ligne" class="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+			➕ Ajouter une ligne
+		</button>
+
+		<div class="mt-6 flex space-x-4">
+			<button class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">💾 Enregistrer</button>
+			<a href="{{ path('facture_index') }}" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">↩️ Retour</a>
+		</div>
+
+		{{ form_end(form) }}
+	</div>
+
+	<script>
+		document.addEventListener("DOMContentLoaded", function () {
+let collectionHolder = document.getElementById("facture-lignes");
+let addButton = document.getElementById("add-ligne");
+let totalHTInput = document.getElementById("{{ form.totalHT.vars.id }}");
+let totalTTCInput = document.getElementById("{{ form.totalTTC.vars.id }}");
+
+collectionHolder.dataset.index = collectionHolder.querySelectorAll(".ligne-item").length;
+
+function recalcLignes() {
+let totalHT = 0;
+let totalTTC = 0;
+
+collectionHolder.querySelectorAll(".ligne-item").forEach(function (ligne) {
+let qte = parseFloat(ligne.querySelector("[id$='_quantite']").value) || 0;
+let prix = parseFloat(ligne.querySelector("[id$='_prixUnitaireHT']").value) || 0;
+let tva = parseFloat(ligne.querySelector("[id$='_tauxTVA']").value) || 0;
+
+let ht = qte * prix;
+let tvaMontant = ht * tva / 100;
+let ttc = ht + tvaMontant;
+
+ligne.querySelector("[id$='_montantHT']").value = ht.toFixed(2);
+ligne.querySelector("[id$='_montantTVA']").value = tvaMontant.toFixed(2);
+ligne.querySelector("[id$='_montantTTC']").value = ttc.toFixed(2);
+
+totalHT += ht;
+totalTTC += ttc;
+});
+
+totalHTInput.value = totalHT.toFixed(2);
+totalTTCInput.value = totalTTC.toFixed(2);
+}
+
+addButton.addEventListener("click", function () {
+let prototype = collectionHolder.dataset.prototype;
+let index = collectionHolder.dataset.index;
+collectionHolder.dataset.index ++;
+
+let newForm = prototype.replace(/__name__/g, index);
+let div = document.createElement("div");
+div.classList.add("ligne-item", "border", "p-4", "rounded-md", "shadow-sm", "bg-gray-50");
+div.innerHTML = newForm;
+
+let removeButton = document.createElement("button");
+removeButton.type = "button";
+removeButton.classList.add("remove-ligne", "bg-red-500", "text-white", "px-3", "py-1", "rounded", "mt-2", "hover:bg-red-600");
+removeButton.innerText = "❌ Supprimer la ligne";
+removeButton.addEventListener("click", function () {
+div.remove();
+recalcLignes();
+});
+
+div.appendChild(removeButton);
+collectionHolder.appendChild(div);
+
+div.querySelectorAll("input").forEach(function (input) {
+input.addEventListener("input", recalcLignes);
+});
+
+recalcLignes();
+});
+
+document.querySelectorAll(".remove-ligne").forEach(function (btn) {
+btn.addEventListener("click", function () {
+btn.closest(".ligne-item").remove();
+recalcLignes();
+});
+});
+
+collectionHolder.querySelectorAll("input").forEach(function (input) {
+input.addEventListener("input", recalcLignes);
+});
+
+recalcLignes();
+});
+	</script>
+{% endblock %}
+
