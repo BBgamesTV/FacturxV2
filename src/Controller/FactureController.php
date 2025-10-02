@@ -18,7 +18,7 @@ use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 
 class FactureController extends AbstractController
 {
-    #[Route('/facture/new', name: 'facture_new', methods: ['GET', 'POST'])]
+    #[Route('/new', name: 'facture_new', methods: ['GET', 'POST'])]
     public function create(Request $request, EntityManagerInterface $em): Response
     {
         if ($request->isMethod('POST')) {
@@ -91,7 +91,7 @@ class FactureController extends AbstractController
         return $this->render('facture/new.html.twig');
     }
 
-    #[Route('/facture/index', name: 'facture_index', methods: ['GET'])]
+    #[Route('/', name: 'facture_index', methods: ['GET'])]
     public function index(FactureRepository $factureRepository): Response
     {
         return $this->render('facture/index.html.twig', [
@@ -137,7 +137,7 @@ class FactureController extends AbstractController
         return $this->redirectToRoute('facture_index');
     }
 
-    #[Route('/facture/{id}/download', name: 'facture_download_facturx', methods: ['GET'])]
+    #[Route('/{id}/download', name: 'facture_download_facturx', methods: ['GET'])]
     public function downloadFacturx(Facture $facture, FacturxService $fxService): Response
     {
         $xmlFilePath = $this->getParameter('kernel.project_dir') . '/public/factures/' . $facture->getNumeroFacture() . '.xml';
