@@ -48,8 +48,29 @@ class Facture
     #[ORM\Column(type: "string", length: 255)]
     private string $nomAcheteur;
 
+    #[ORM\Column(type: "string", length: 255)]
+    private string $adresseFournisseur;
+
+    #[ORM\Column(type: "string", length: 255)]
+    private string $villeFournisseur;
+
+    #[ORM\Column(type: "string", length: 255)]
+    private string $codePostalFournisseur;
+
+    #[ORM\Column(type: "string", length: 255)]
+    private string $adresseAcheteur;
+
+    #[ORM\Column(type: "string", length: 255)]
+    private string $villeAcheteur;
+
+    #[ORM\Column(type: "string", length: 255)]
+    private string $codePostalAcheteur;
+
     #[ORM\Column(type: "string", length: 20)]
     private string $sirenAcheteur;
+
+    #[ORM\Column(type: "string", length: 2)]
+    private string $codePaysAcheteur;
 
     #[ORM\Column(type: "string", length: 255)]
     private string $emailAcheteur;
@@ -204,6 +225,16 @@ class Facture
         return $this;
     }
 
+    public function getCodePaysAcheteur(): string
+    {
+        return $this->codePaysAcheteur;
+    }
+    public function setCodePaysAcheteur(string $codePaysAcheteur): self
+    {
+        $this->codePaysAcheteur = $codePaysAcheteur;
+        return $this;
+    }
+
     public function getEmailFournisseur(): string
     {
         return $this->emailFournisseur;
@@ -211,6 +242,64 @@ class Facture
     public function setEmailFournisseur(string $emailFournisseur): self
     {
         $this->emailFournisseur = $emailFournisseur;
+        return $this;
+    }
+
+    public function getAdresseFournisseur(): ?string
+    {
+        return $this->adresseFournisseur;
+    }
+    public function setAdresseFournisseur(?string $adresseFournisseur): self
+    {
+        $this->adresseFournisseur = $adresseFournisseur;
+        return $this;
+    }
+    public function getVilleFournisseur(): ?string
+    {
+        return $this->villeFournisseur;
+    }
+    public function setVilleFournisseur(?string $villeFournisseur): self
+    {
+        $this->villeFournisseur = $villeFournisseur;
+        return $this;
+    }
+
+    public function getCodePostalFournisseur(): ?string
+    {
+        return $this->codePostalFournisseur;
+    }
+    public function setCodePostalFournisseur(?string $codePostalFournisseur): self
+    {
+        $this->codePostalFournisseur = $codePostalFournisseur;
+        return $this;
+    }
+
+    public function getAdresseAcheteur(): ?string
+    {
+        return $this->adresseAcheteur;
+    }
+    public function setAdresseAcheteur(?string $adresseAcheteur): self
+    {
+        $this->adresseAcheteur = $adresseAcheteur;
+        return $this;
+    }
+    public function getVilleAcheteur(): ?string
+    {
+        return $this->villeAcheteur;
+    }
+    public function setVilleAcheteur(?string $villeAcheteur): self
+    {
+        $this->villeAcheteur = $villeAcheteur;
+        return $this;
+    }
+
+    public function getCodePostalAcheteur(): ?string
+    {
+        return $this->codePostalAcheteur;
+    }
+    public function setCodePostalAcheteur(?string $codePostalAcheteur): self
+    {
+        $this->codePostalAcheteur = $codePostalAcheteur;
         return $this;
     }
 
