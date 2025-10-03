@@ -122,7 +122,7 @@ class FactureLigne
 
     public function getMontantHT(): float
     {
-        return $this->montantHT;
+        return $this->prixUnitaireHT * $this->quantite;
     }
     public function setMontantHT(float $montantHT): self
     {
@@ -132,7 +132,7 @@ class FactureLigne
 
     public function getMontantTVA(): float
     {
-        return $this->montantTVA;
+        return $this->getMontantHT() * ($this->tauxTVA / 100);
     }
     public function setMontantTVA(float $montantTVA): self
     {
@@ -142,7 +142,7 @@ class FactureLigne
 
     public function getMontantTTC(): float
     {
-        return $this->montantTTC;
+        return $this->getMontantHT() + $this->getMontantTVA();
     }
     public function setMontantTTC(float $montantTTC): self
     {

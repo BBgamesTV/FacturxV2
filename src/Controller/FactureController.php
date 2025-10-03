@@ -140,9 +140,7 @@ class FactureController extends AbstractController
     #[Route('/{id}/download', name: 'facture_download_facturx', methods: ['GET'])]
     public function downloadFacturx(Facture $facture, FacturxService $fxService): Response
     {
-        $projectDir = $this->getParameter('kernel.project_dir');
-        $publicDir = $projectDir . '/public/factures';
-
+        $publicDir = $this->getParameter('kernel.project_dir') . '/public/factures';
         if (!is_dir($publicDir)) {
             mkdir($publicDir, 0777, true);
         }
@@ -150,17 +148,8 @@ class FactureController extends AbstractController
         $pdfFileName = 'facture_' . $facture->getNumeroFacture() . '_fx.pdf';
         $pdfFilePath = $publicDir . '/' . $pdfFileName;
 
-        // Génération du PDF Factur-X avec XML intégré
         $fxService->buildPdfFacturX($facture, $pdfFilePath);
 
-        // Retourne le PDF au navigateur
-        // return $this->file(
-        //     $pdfFilePath,
-        //     $pdfFileName,
-        //     ResponseHeaderBag::DISPOSITION_INLINE
-        // );
-        return $this->render('facture/pdf_template.html.twig', [
-            'facture' => $facture,
-        ]);
+        return $this->file($pdfFilePath, $pdfFileName, ResponseHeaderBag::DISPOSITION_INLINE);
     }
 }

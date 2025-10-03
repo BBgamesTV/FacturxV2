@@ -4,13 +4,16 @@
 	{{ facture.numeroFacture }}
 {% endblock %}
 
+
+
 {% block body %}
-	<div class="max-w-5xl mx-auto bg-white shadow rounded-lg p-6">
-		<h1 class="text-2xl font-bold mb-6 text-gray-800">✏️ Modifier la Facture</h1>
+	<div class="max-w-5xl mx-auto bg-white shadow rounded-lg p-6 space-y-6">
+		<h1 class="text-2xl font-bold text-gray-800">✏️ Modifier la Facture</h1>
 
 		{{ form_start(form) }}
 
-		<div class="grid grid-cols-2 gap-4">
+		{# ---------------- Section Info Facture ---------------- #}
+		<div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 border rounded-lg bg-gray-100 shadow-sm">
 			<div>{{ form_row(form.numeroFacture) }}</div>
 			<div>{{ form_row(form.dateFacture) }}</div>
 			<div>{{ form_row(form.dateEcheance) }}</div>
@@ -20,35 +23,40 @@
 			<div>{{ form_row(form.totalTTC) }}</div>
 		</div>
 
-		<h2 class="text-xl font-semibold mt-8 mb-4 text-gray-700">🧾 Lignes de facture</h2>
+		{# ---------------- Section Lignes de facture ---------------- #}
+		<div class="p-4 border rounded-lg bg-gray-50 shadow-sm">
+			<h2 class="text-xl font-semibold text-gray-700 mb-4">🧾 Lignes de facture</h2>
 
-		<div id="facture-lignes" data-prototype="{{ form_widget(form.lignes.vars.prototype)|e('html_attr') }}" class="space-y-4">
+<div id="facture-lignes" data-prototype="{{ form_widget(form.lignes.vars.prototype)|e('html_attr') }}" class="space-y-4 bg-gray-50 p-4 rounded">
+				{# Affiche les lignes de la facture existantes #}
 
-			{% for ligneForm in form.lignes %}
-				<div class="ligne-item border p-4 rounded-md shadow-sm bg-gray-50">
-					{{ form_row(ligneForm.designation) }}
-					{{ form_row(ligneForm.reference) }}
-					{{ form_row(ligneForm.quantite) }}
-					{{ form_row(ligneForm.unite) }}
-					{{ form_row(ligneForm.prixUnitaireHT) }}
-					{{ form_row(ligneForm.tauxTVA) }}
-					{{ form_row(ligneForm.montantHT) }}
-					{{ form_row(ligneForm.montantTVA) }}
-					{{ form_row(ligneForm.montantTTC) }}
+				{% for ligneForm in form.lignes %}
+					<div class="ligne-item grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-md shadow-sm bg-gray-100">
+						{# Champs de la ligne de facture #}
+						<div>{{ form_row(ligneForm.designation) }}</div>
+						<div>{{ form_row(ligneForm.reference) }}</div>
+						<div>{{ form_row(ligneForm.quantite) }}</div>
+						<div>{{ form_row(ligneForm.unite) }}</div>
+						<div>{{ form_row(ligneForm.prixUnitaireHT) }}</div>
+						<div>{{ form_row(ligneForm.tauxTVA) }}</div>
+						<div>{{ form_row(ligneForm.montantHT) }}</div>
+						<div>{{ form_row(ligneForm.montantTVA) }}</div>
+						<div>{{ form_row(ligneForm.montantTTC) }}</div>
 
-					<button type="button" class="remove-ligne bg-red-500 text-white px-3 py-1 rounded mt-2 hover:bg-red-600">
-						❌ Supprimer la ligne
-					</button>
-				</div>
-			{% endfor %}
-			{# <-- la boucle est fermée correctement #}
+						<button type="button" class="remove-ligne bg-red-500 text-white px-3 py-1 rounded mt-2 hover:bg-red-600 col-span-1 md:col-span-4">
+							❌ Supprimer la ligne
+						</button>
+					</div>
+				{% endfor %}
+			</div>
+
+			<button type="button" id="add-ligne" class="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+				➕ Ajouter une ligne
+			</button>
 		</div>
 
-		<button type="button" id="add-ligne" class="mt-4 bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-			➕ Ajouter une ligne
-		</button>
-
-		<div class="mt-6 flex space-x-4">
+		{# ---------------- Boutons d'action ---------------- #}
+		<div class="flex space-x-4">
 			<button class="bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700">💾 Enregistrer</button>
 			<a href="{{ path('facture_index') }}" class="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400">↩️ Retour</a>
 		</div>
@@ -97,12 +105,12 @@ collectionHolder.dataset.index ++;
 
 let newForm = prototype.replace(/__name__/g, index);
 let div = document.createElement("div");
-div.classList.add("ligne-item", "border", "p-4", "rounded-md", "shadow-sm", "bg-gray-50");
+div.classList.add("ligne-item", "grid", "grid-cols-1", "md:grid-cols-4", "gap-4", "p-4", "border", "rounded-md", "shadow-sm", "bg-gray-100");
 div.innerHTML = newForm;
 
 let removeButton = document.createElement("button");
 removeButton.type = "button";
-removeButton.classList.add("remove-ligne", "bg-red-500", "text-white", "px-3", "py-1", "rounded", "mt-2", "hover:bg-red-600");
+removeButton.classList.add("remove-ligne", "bg-red-500", "text-white", "px-3", "py-1", "rounded", "mt-2", "hover:bg-red-600", "col-span-1", "md:col-span-4");
 removeButton.innerText = "❌ Supprimer la ligne";
 removeButton.addEventListener("click", function () {
 div.remove();

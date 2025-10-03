@@ -4,83 +4,78 @@
 {% endblock %}
 
 {% block body %}
-	<h1 class="text-2xl font-bold mb-6 text-gray-800">📑 Liste des Factures</h1>
+	<div class="max-w-6xl mx-auto">
+		<h1 class="text-2xl font-bold mb-6 text-gray-800">📑 Liste des Factures</h1>
 
-	{% if factures is empty %}
-		<div class="bg-yellow-100 text-yellow-800 p-4 rounded-md text-center shadow">
-			Aucune facture disponible.
-		</div>
-	{% else %}
-		<div class="overflow-x-auto bg-white rounded-lg shadow">
-			<table class="min-w-full text-sm text-left">
-				<thead class="bg-indigo-600 text-white">
-					<tr>
-						<th class="px-4 py-3">#</th>
-						<th class="px-4 py-3">Numéro</th>
-						<th class="px-4 py-3">Date</th>
-						<th class="px-4 py-3">Fournisseur</th>
-						<th class="px-4 py-3">Acheteur</th>
-						<th class="px-4 py-3">Total HT</th>
-						<th class="px-4 py-3">Total TTC</th>
-						<th class="px-4 py-3">Échéance</th>
-						<th class="px-4 py-3 text-right">Actions</th>
-					</tr>
-				</thead>
-				<tbody class="divide-y divide-gray-200">
-					{% for facture in factures %}
-						<tr class="hover:bg-gray-50">
-							<td class="px-4 py-3">{{ facture.id }}</td>
-							<td class="px-4 py-3 font-medium">{{ facture.numeroFacture }}</td>
-							<td class="px-4 py-3">{{ facture.dateFacture|date('d/m/Y') }}</td>
-							<td class="px-4 py-3">{{ facture.nomFournisseur }}</td>
-							<td class="px-4 py-3">{{ facture.nomAcheteur }}</td>
-							<td class="px-4 py-3">{{ facture.totalHT|number_format(2, ',', ' ') }}
-								{{ facture.devise }}</td>
-							<td class="px-4 py-3">{{ facture.totalTTC|number_format(2, ',', ' ') }}
-								{{ facture.devise }}</td>
-							<td class="px-4 py-3">
-								{{ facture.dateEcheance ? facture.dateEcheance|date('d/m/Y') : '-' }}
-							</td>
-							<td class="px-4 py-3 text-right space-x-2">
-								<a href="{{ path('facture_show', {id: facture.id}) }}" class="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600">Voir</a>
-								<a href="{{ path('facture_download_facturx', {id: facture.id}) }}" class="px-3 py-1 bg-cyan-500 text-white rounded hover:bg-cyan-600">Télécharger</a>
-								<a href="{{ path('facture_edit', {id: facture.id}) }}" class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">Modifier</a>
-								<form method="post" action="{{ path('facture_delete', {id: facture.id}) }}" class="inline" onsubmit="return confirm('Confirmer la suppression ?');">
-									<input type="hidden" name="_token" value="{{ csrf_token('delete' ~ facture.id) }}">
-									<button class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600">Supprimer</button>
-								</form>
-							</td>
+		{% if factures is empty %}
+			<div class="bg-yellow-100 text-yellow-800 p-4 rounded-md text-center shadow">Aucune facture disponible.</div>
+		{% else %}
+			<div class="overflow-x-auto bg-white rounded-lg shadow">
+				<table class="min-w-full text-sm text-left">
+					<thead class="bg-indigo-600 text-white">
+						<tr>
+							<th class="px-4 py-2">#</th>
+							<th class="px-4 py-2">Numéro</th>
+							<th class="px-4 py-2">Date</th>
+							<th class="px-4 py-2">Fournisseur</th>
+							<th class="px-4 py-2">Acheteur</th>
+							<th class="px-4 py-2">Total HT</th>
+							<th class="px-4 py-2">Total TTC</th>
+							<th class="px-4 py-2">Échéance</th>
+							<th class="px-4 py-2 text-right">Actions</th>
 						</tr>
+					</thead>
+					<tbody class="divide-y divide-gray-200">
+						{% for facture in factures %}
+							<tr class="hover:bg-gray-50">
+								<td class="px-4 py-2">{{ facture.id }}</td>
+								<td class="px-4 py-2 font-medium">{{ facture.numeroFacture }}</td>
+								<td class="px-4 py-2">{{ facture.dateFacture|date('d/m/Y') }}</td>
+								<td class="px-4 py-2">{{ facture.nomFournisseur }}</td>
+								<td class="px-4 py-2">{{ facture.nomAcheteur }}</td>
+								<td class="px-4 py-2">{{ facture.totalHT|number_format(2, ',', ' ') }}
+									{{ facture.devise }}</td>
+								<td class="px-4 py-2">{{ facture.totalTTC|number_format(2, ',', ' ') }}
+									{{ facture.devise }}</td>
+								<td class="px-4 py-2">{{ facture.dateEcheance ? facture.dateEcheance|date('d/m/Y') : '-' }}</td>
+								<td class="px-4 py-2 text-right flex justify-end space-x-1 items-center">
+									<a href="{{ path('facture_show', {id: facture.id}) }}" class="px-2 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600">Voir</a>
+									<a href="{{ path('facture_download_facturx', {id: facture.id}) }}" class="px-2 py-1 bg-cyan-500 text-white rounded hover:bg-cyan-600">FacturX</a>
+									<a href="{{ path('facture_edit', {id: facture.id}) }}" class="px-2 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">Modifier</a>
+									<form method="post" action="{{ path('facture_delete', {id: facture.id}) }}" onsubmit="return confirm('Confirmer la suppression ?');">
+										<input type="hidden" name="_token" value="{{ csrf_token('delete' ~ facture.id) }}">
+										<button class="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600">Supprimer</button>
+									</form>
+								</td>
 
-						{# ✅ aperçu des lignes juste en dessous #}
-						<tr class="bg-gray-50">
-							<td colspan="9" class="px-4 py-2">
-								<strong>Lignes :</strong>
-								{% if facture.lignes is empty %}
-									<em>Aucune ligne</em>
-								{% else %}
-									<ul class="list-disc pl-6 text-gray-700">
-										{% for ligne in facture.lignes %}
-											<li>
-												{{ ligne.designation }}
-												–
-												{{ ligne.quantite }}
-												×
-												{{ ligne.prixUnitaireHT|number_format(2, ',', ' ') }}
-												{{ facture.devise }}
-												(TVA
-												{{ ligne.tauxTVA }}%) =
-												{{ ligne.montantTTC|number_format(2, ',', ' ') }}
-												{{ facture.devise }}
-											</li>
-										{% endfor %}
-									</ul>
-								{% endif %}
-							</td>
-						</tr>
-					{% endfor %}
-				</tbody>
-			</table>
-		</div>
-	{% endif %}
+							</tr>
+							<tr class="bg-gray-300">
+								<td colspan="9" class="px-4 py-2">
+									{# <strong>Lignes :</strong> #}
+									{% if facture.lignes is empty %}
+										<em>Aucune ligne</em>
+									{% else %}
+										<ul class="list-disc pl-5 text-gray-700">
+											{% for ligne in facture.lignes %}
+												<li>{{ ligne.designation }}
+													–
+													{{ ligne.quantite }}
+													×
+													{{ ligne.prixUnitaireHT|number_format(2, ',', ' ') }}
+													{{ facture.devise }}
+													(TVA
+													{{ ligne.tauxTVA }}%) =
+													{{ ligne.montantTTC|number_format(2, ',', ' ') }}
+													{{ facture.devise }}</li>
+											{% endfor %}
+										</ul>
+									{% endif %}
+								</td>
+							</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+		{% endif %}
+	</div>
 {% endblock %}

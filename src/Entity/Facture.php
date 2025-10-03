@@ -256,7 +256,7 @@ class Facture
 
     public function getTotalHT(): float
     {
-        return $this->totalHT;
+        return array_sum(array_map(fn($l) => $l->getMontantHT(), $this->lignes->toArray()));
     }
     public function setTotalHT(float $totalHT): self
     {
@@ -266,7 +266,7 @@ class Facture
 
     public function getTotalTVA(): float
     {
-        return $this->totalTVA;
+        return array_sum(array_map(fn($l) => $l->getMontantTVA(), $this->lignes->toArray()));
     }
     public function setTotalTVA(float $totalTVA): self
     {
@@ -276,7 +276,7 @@ class Facture
 
     public function getTotalTTC(): float
     {
-        return $this->totalTTC;
+        return array_sum(array_map(fn($l) => $l->getMontantTTC(), $this->lignes->toArray()));
     }
     public function setTotalTTC(float $totalTTC): self
     {
