@@ -18,112 +18,132 @@ class FacturxService
         $this->twig = $twig;
     }
 
+    /**
+     * Génère le XML Factur-X BASIC conforme EN16931
+     */
     public function buildXml(Facture $facture): string
     {
         $xml = new \DOMDocument('1.0', 'UTF-8');
         $xml->formatOutput = true;
 
         // Racine
-        $facturx = $xml->createElement('rsm:CrossIndustryInvoice');
-        $facturx->setAttribute('xmlns:rsm', 'urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100');
-        $facturx->setAttribute('xmlns:ram', 'urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100');
-        $facturx->setAttribute('xmlns:udt', 'urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100');
-        $facturx->setAttribute('xmlns:qdt', 'urn:un:unece:uncefact:data:standard:QualifiedDataType:100');
-        $xml->appendChild($facturx);
+        $root = $xml->createElement('rsm:CrossIndustryInvoice');
+        $root->setAttribute('xmlns:rsm', 'urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100');
+        $root->setAttribute('xmlns:ram', 'urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100');
+        $root->setAttribute('xmlns:udt', 'urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100');
+        $root->setAttribute('xmlns:qdt', 'urn:un:unece:uncefact:data:standard:QualifiedDataType:100');
+        $xml->appendChild($root);
 
         // ExchangedDocumentContext
         $context = $xml->createElement('rsm:ExchangedDocumentContext');
         $guideline = $xml->createElement('ram:GuidelineSpecifiedDocumentContextParameter');
         $guideline->appendChild($xml->createElement('ram:ID', 'urn:cen.eu:en16931:2017'));
         $context->appendChild($guideline);
-        $facturx->appendChild($context);
+        $root->appendChild($context);
 
         // ExchangedDocument
         $doc = $xml->createElement('rsm:ExchangedDocument');
         $doc->appendChild($xml->createElement('ram:ID', $facture->getNumeroFacture()));
-        $doc->appendChild($xml->createElement('ram:TypeCode', '380'));
-        $issueDate = $xml->createElement('ram:IssueDateTime');
-        $dateTime = $xml->createElement('udt:DateTimeString', $facture->getDateFacture()->format('Ymd'));
-        $dateTime->setAttribute('format', '102');
-        $issueDate->appendChild($dateTime);
-        $doc->appendChild($issueDate);
-        $facturx->appendChild($doc);
+        $issueDateTime = $xml->createElement('ram:IssueDateTime');
+        $date = $xml->createElement('udt:DateTimeString', $facture->getDateFacture()->format('Ymd'));
+        $date->setAttribute('format', '102');
+        $issueDateTime->appendChild($date);
+        $doc->appendChild($issueDateTime);
+        $root->appendChild($doc);
 
         // SupplyChainTradeTransaction
         $transaction = $xml->createElement('rsm:SupplyChainTradeTransaction');
 
         // Lignes de facture
-        foreach ($facture->getLignes()->toArray() as $index => $ligne) {
+        foreach ($facture->getLignes() as $index => $ligne) {
             $lineItem = $xml->createElement('ram:IncludedSupplyChainTradeLineItem');
 
+            // Ligne ID
             $assocDocLine = $xml->createElement('ram:AssociatedDocumentLineDocument');
             $assocDocLine->appendChild($xml->createElement('ram:LineID', $index + 1));
             $lineItem->appendChild($assocDocLine);
 
-            $delivery = $xml->createElement('ram:SpecifiedLineTradeDelivery');
+            // Accord sur la ligne (quantité)
+            $lineAgreement = $xml->createElement('ram:SpecifiedLineTradeAgreement');
             $billedQty = $xml->createElement('ram:BilledQuantity', number_format($ligne->getQuantite(), 2, '.', ''));
             $billedQty->setAttribute('unitCode', $ligne->getUnite() ?: 'C62');
-            $delivery->appendChild($billedQty);
-            $lineItem->appendChild($delivery);
+            $lineAgreement->appendChild($billedQty);
+            $lineItem->appendChild($lineAgreement);
 
-            $settlement = $xml->createElement('ram:SpecifiedLineTradeSettlement');
-            $settlement->appendChild($xml->createElement('ram:LineTotalAmount', number_format($ligne->getMontantHT(), 2, '.', '')));
+            // Livraison sur la ligne
+            $lineDelivery = $xml->createElement('ram:SpecifiedLineTradeDelivery');
+            $lineItem->appendChild($lineDelivery);
 
+            // Montants sur la ligne
+            $lineSettlement = $xml->createElement('ram:SpecifiedLineTradeSettlement');
+            $lineSettlement->appendChild($xml->createElement('ram:LineTotalAmount', number_format($ligne->getMontantHT(), 2, '.', '')));
+
+            // TVA
             $tax = $xml->createElement('ram:ApplicableTradeTax');
             $tax->appendChild($xml->createElement('ram:CalculatedAmount', number_format($ligne->getMontantTVA(), 2, '.', '')));
             $tax->appendChild($xml->createElement('ram:TypeCode', 'VAT'));
             $tax->appendChild($xml->createElement('ram:CategoryCode', 'S'));
             $tax->appendChild($xml->createElement('ram:RateApplicablePercent', number_format($ligne->getTauxTVA(), 2, '.', '')));
-            $settlement->appendChild($tax);
+            $lineSettlement->appendChild($tax);
 
-            $price = $xml->createElement('ram:SpecifiedTradeProduct');
-            $price->appendChild($xml->createElement('ram:Name', $ligne->getDesignation()));
-            $settlement->appendChild($price);
+            // Produit
+            $product = $xml->createElement('ram:SpecifiedTradeProduct');
+            $product->appendChild($xml->createElement('ram:Name', $ligne->getDesignation()));
+            $lineSettlement->appendChild($product);
 
-            $lineItem->appendChild($settlement);
+            $lineItem->appendChild($lineSettlement);
             $transaction->appendChild($lineItem);
         }
 
-        // Parties & Montants globaux
+        // Parties
         $tradeAgreement = $xml->createElement('ram:ApplicableHeaderTradeAgreement');
 
-        // Seller
-        $fournisseur = $facture->getFournisseur();
+        // Fournisseur
         $seller = $xml->createElement('ram:SellerTradeParty');
-        $seller->appendChild($xml->createElement('ram:Name', $fournisseur ? $fournisseur->getNom() : ''));
-        $seller->appendChild($xml->createElement('ram:ID', $fournisseur ? $fournisseur->getSiren() : ''));
-        $sellerAddress = $xml->createElement('ram:PostalTradeAddress');
-        $sellerAddress->appendChild($xml->createElement('ram:LineOne', $fournisseur?->getAdresse() ?? ''));
-        $sellerAddress->appendChild($xml->createElement('ram:CityName', $fournisseur?->getVille() ?? ''));
-        $sellerAddress->appendChild($xml->createElement('ram:PostcodeCode', $fournisseur?->getCodePostal() ?? ''));
-        $sellerAddress->appendChild($xml->createElement('ram:CountryID', $fournisseur?->getCodePays() ?? 'FR'));
-        $seller->appendChild($sellerAddress);
+        $taxReg = $xml->createElement('ram:SpecifiedTaxRegistration');
+        $taxReg->appendChild($xml->createElement('ram:ID', $facture->getFournisseur()?->getSiren() ?? ''));
+        $seller->appendChild($taxReg);
+        $address = $xml->createElement('ram:PostalTradeAddress');
+        $address->appendChild($xml->createElement('ram:LineOne', $facture->getFournisseur()?->getAdresse() ?? ''));
+        $address->appendChild($xml->createElement('ram:CityName', $facture->getFournisseur()?->getVille() ?? ''));
+        $address->appendChild($xml->createElement('ram:PostcodeCode', $facture->getFournisseur()?->getCodePostal() ?? ''));
+        $address->appendChild($xml->createElement('ram:CountryID', $facture->getFournisseur()?->getCodePays() ?? 'FR'));
+        $seller->appendChild($address);
         $tradeAgreement->appendChild($seller);
 
-        // Buyer
-        $acheteur = $facture->getAcheteur();
+        // Acheteur
         $buyer = $xml->createElement('ram:BuyerTradeParty');
-        $buyer->appendChild($xml->createElement('ram:Name', $acheteur ? $acheteur->getNom() : ''));
-        $buyer->appendChild($xml->createElement('ram:ID', $acheteur ? $acheteur->getSiren() : ''));
-        $buyerAddress = $xml->createElement('ram:PostalTradeAddress');
-        $buyerAddress->appendChild($xml->createElement('ram:LineOne', $acheteur?->getAdresse() ?? ''));
-        $buyerAddress->appendChild($xml->createElement('ram:CityName', $acheteur?->getVille() ?? ''));
-        $buyerAddress->appendChild($xml->createElement('ram:PostcodeCode', $acheteur?->getCodePostal() ?? ''));
-        $buyerAddress->appendChild($xml->createElement('ram:CountryID', $acheteur?->getCodePays() ?? 'FR'));
-        $buyer->appendChild($buyerAddress);
+        $taxReg = $xml->createElement('ram:SpecifiedTaxRegistration');
+        $taxReg->appendChild($xml->createElement('ram:ID', $facture->getAcheteur()?->getSiren() ?? ''));
+        $buyer->appendChild($taxReg);
+        $address = $xml->createElement('ram:PostalTradeAddress');
+        $address->appendChild($xml->createElement('ram:LineOne', $facture->getAcheteur()?->getAdresse() ?? ''));
+        $address->appendChild($xml->createElement('ram:CityName', $facture->getAcheteur()?->getVille() ?? ''));
+        $address->appendChild($xml->createElement('ram:PostcodeCode', $facture->getAcheteur()?->getCodePostal() ?? ''));
+        $address->appendChild($xml->createElement('ram:CountryID', $facture->getAcheteur()?->getCodePays() ?? 'FR'));
+        $buyer->appendChild($address);
         $tradeAgreement->appendChild($buyer);
 
         $transaction->appendChild($tradeAgreement);
 
         // Montants globaux
         $tradeSettlement = $xml->createElement('ram:ApplicableHeaderTradeSettlement');
-        $tradeSettlement->appendChild($xml->createElement('ram:InvoiceCurrencyCode', $facture->getDevise() ?: 'EUR'));
-        $tradeSettlement->appendChild($xml->createElement('ram:GrandTotalAmount', number_format($facture->getTotalTTC(), 2, '.', '')));
-        $tradeSettlement->appendChild($xml->createElement('ram:TaxTotalAmount', number_format($facture->getTotalTVA(), 2, '.', '')));
+
+        $payee = $xml->createElement('ram:PayeeTradeParty');
+        $tradeSettlement->appendChild($payee);
+
+        $paymentMeans = $xml->createElement('ram:SpecifiedTradeSettlementPaymentMeans');
+        $tradeSettlement->appendChild($paymentMeans);
+
+        $taxTotal = $xml->createElement('ram:ApplicableTradeTax');
+        $taxTotal->appendChild($xml->createElement('ram:CalculatedAmount', number_format($facture->getTotalTVA(), 2, '.', '')));
+        $tradeSettlement->appendChild($taxTotal);
+
         $transaction->appendChild($tradeSettlement);
 
-        $facturx->appendChild($transaction);
+        $root->appendChild($transaction);
 
+        // Sauvegarde
         $xmlDir = $this->projectDir . '/public/factures/xml';
         if (!is_dir($xmlDir)) mkdir($xmlDir, 0777, true);
 
@@ -133,6 +153,9 @@ class FacturxService
         return $xmlFileName;
     }
 
+    /**
+     * Génère le PDF Factur-X avec XML imbriqué
+     */
     public function buildPdfFacturX(Facture $facture, string $outputPdfPath): void
     {
         $xmlFile = $this->buildXml($facture);
