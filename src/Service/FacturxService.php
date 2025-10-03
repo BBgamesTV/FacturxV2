@@ -1,145 +1,124 @@
 <?php
-// src/Service/FacturxService.php
+
 namespace App\Service;
 
 use App\Entity\Facture;
-use Atgp\FacturX\XsdValidator;
-use Atgp\FacturX\Writer;
-use DOMDocument;
+
+use TCPDF;
+use Twig\Environment;
+
 
 class FacturxService
 {
-    /**
-     * Crée un XML Factur-X valide à partir d'une facture et l'enregistre si $filePath fourni
-     *
-     * @param Facture $facture
-     * @param string|null $filePath Chemin pour enregistrer le XML (optionnel)
-     * @return string Contenu XML
-     */
-    public function buildXml(Facture $facture, ?string $filePath = null): string
+    private Environment $twig;
+
+    public function __construct(Environment $twig)
     {
-        $doc = new DOMDocument('1.0', 'UTF-8');
-        $doc->formatOutput = true;
+        $this->twig = $twig;
+    }
+    /**
+     * Génère un XML Factur-X BASIC valide pour une facture.
+     */
+    public function buildXml(Facture $facture): string
+    {
+        $xml = new \DOMDocument('1.0', 'UTF-8');
+        $xml->formatOutput = true;
 
-        // --- Racine correcte avec namespace principal ---
-        $root = $doc->createElementNS(
-            'urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100',
-            'CrossIndustryInvoice'
-        );
+        $facturx = $xml->createElement('rsm:CrossIndustryInvoice');
+        $facturx->setAttribute('xmlns:rsm', 'urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100');
+        $facturx->setAttribute('xmlns:udt', 'urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100');
+        $facturx->setAttribute('xmlns:qdt', 'urn:un:unece:uncefact:data:standard:QualifiedDataType:100');
+        $xml->appendChild($facturx);
 
-        // Préfixes internes
-        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:rsm', 'urn:ferd:CrossIndustryDocument:invoice:1p0');
-        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:ram', 'urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:12');
-        $root->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:udt', 'urn:un:unece:uncefact:data:standard:UnqualifiedDataType:15');
-        $doc->appendChild($root);
+        // Document
+        $doc = $xml->createElement('rsm:ExchangedDocument');
+        $doc->appendChild($xml->createElement('rsm:ID', $facture->getNumeroFacture()));
+        $doc->appendChild($xml->createElement('rsm:TypeCode', $facture->getTypeFacture() ?? '380')); // Facture
+        $facturx->appendChild($doc);
 
-        // --- ExchangedDocumentContext / GuidelineSpecifiedDocumentContextParameter ---
-        $context = $doc->createElement('rsm:ExchangedDocumentContext');
-        $guideline = $doc->createElement('ram:GuidelineSpecifiedDocumentContextParameter');
-        $allowedProfiles = ['minimum', 'basicwl', 'basic', 'en16931', 'extended'];
-        $profile = strtolower($facture->getProfilFacturX() ?: 'minimum');
+        // Parties
+        $trade = $xml->createElement('rsm:ApplicableHeaderTradeAgreement');
+        $seller = $xml->createElement('rsm:SellerTradeParty');
+        $seller->appendChild($xml->createElement('rsm:Name', $facture->getNomFournisseur()));
+        $seller->appendChild($xml->createElement('rsm:ID', $facture->getSirenFournisseur()));
+        $trade->appendChild($seller);
 
-        if (!in_array($profile, $allowedProfiles, true)) {
-            $profile = 'minimum';
+        $buyer = $xml->createElement('rsm:BuyerTradeParty');
+        $buyer->appendChild($xml->createElement('rsm:Name', $facture->getNomAcheteur()));
+        $buyer->appendChild($xml->createElement('rsm:ID', $facture->getSirenAcheteur()));
+        $trade->appendChild($buyer);
+
+        $facturx->appendChild($trade);
+
+        // Montants
+        $settlement = $xml->createElement('rsm:ApplicableHeaderTradeSettlement');
+        $settlement->appendChild($xml->createElement('rsm:GrandTotalAmount', number_format($facture->getTotalTTC(), 2, '.', '')));
+        $settlement->appendChild($xml->createElement('rsm:DuePayableAmount', number_format($facture->getNetAPayer(), 2, '.', '')));
+        $facturx->appendChild($settlement);
+
+        // Lignes
+        $linesParent = $xml->createElement('rsm:IncludedSupplyChainTradeLineItem');
+        foreach ($facture->getLignes() as $ligne) {
+            $line = $xml->createElement('rsm:TradeLineItem');
+            $line->appendChild($xml->createElement('rsm:Name', $ligne->getDesignation()));
+            $line->appendChild($xml->createElement('rsm:InvoicedQuantity', $ligne->getQuantite()));
+            $line->appendChild($xml->createElement('rsm:UnitPrice', number_format($ligne->getPrixUnitaireHT(), 2, '.', '')));
+            $line->appendChild($xml->createElement('rsm:LineTotalAmount', number_format($ligne->getMontantTTC(), 2, '.', '')));
+            $linesParent->appendChild($line);
         }
+        $facturx->appendChild($linesParent);
 
-        $id = $doc->createElement('ram:ID', "urn:factur-x:pdfa:CrossIndustryDocument:invoice:1p0:$profile");
-        $guideline->appendChild($id);
-        $context->appendChild($guideline);
-        $root->appendChild($context);
+        $tmpXml = tempnam(sys_get_temp_dir(), 'facturx_') . '.xml';
+        $xml->save($tmpXml);
 
-        // --- ExchangedDocument ---
-        $exDoc = $doc->createElement('rsm:ExchangedDocument');
-        $idEl = $doc->createElement('ram:ID', $facture->getNumeroFacture());
-        $dateEl = $doc->createElement('ram:IssueDateTime');
-        $dateStr = $doc->createElement('udt:DateTimeString', $facture->getDateFacture()->format('Ymd'));
-        $dateStr->setAttribute('format', '102'); // format EN16931
-        $dateEl->appendChild($dateStr);
-        $exDoc->appendChild($idEl);
-        $exDoc->appendChild($dateEl);
-        $root->appendChild($exDoc);
-
-        // --- SupplyChainTradeTransaction ---
-        $sctt = $doc->createElement('rsm:SupplyChainTradeTransaction');
-        $root->appendChild($sctt);
-
-        // HeaderTradeAgreement : Fournisseur & Acheteur
-        $agreement = $doc->createElement('ram:ApplicableHeaderTradeAgreement');
-        $sctt->appendChild($agreement);
-
-        // Seller
-        $seller = $doc->createElement('ram:SellerTradeParty');
-        $seller->appendChild($doc->createElement('ram:Name', $facture->getNomFournisseur()));
-        $seller->appendChild($doc->createElement('ram:ID', $facture->getSirenFournisseur()));
-        $agreement->appendChild($seller);
-
-        // Buyer
-        $buyer = $doc->createElement('ram:BuyerTradeParty');
-        $buyer->appendChild($doc->createElement('ram:Name', $facture->getNomAcheteur()));
-        $buyer->appendChild($doc->createElement('ram:ID', $facture->getSirenAcheteur()));
-        $agreement->appendChild($buyer);
-
-        // HeaderTradeSettlement / Totaux
-        $settlement = $doc->createElement('ram:ApplicableHeaderTradeSettlement');
-        $sctt->appendChild($settlement);
-
-        $sum = $doc->createElement('ram:SpecifiedTradeSettlementMonetarySummation');
-        $sum->appendChild($doc->createElement('ram:LineTotalAmount', number_format($facture->getTotalHT(), 2, '.', '')));
-        $sum->appendChild($doc->createElement('ram:TaxTotalAmount', number_format($facture->getTotalTVA(), 2, '.', '')));
-        $sum->appendChild($doc->createElement('ram:GrandTotalAmount', number_format($facture->getTotalTTC(), 2, '.', '')));
-        $sum->appendChild($doc->createElement('ram:DuePayableAmount', number_format($facture->getNetAPayer(), 2, '.', '')));
-        $settlement->appendChild($sum);
-
-        // Dates optionnelles
-        if ($facture->getDateEcheance()) {
-            $invoiceDue = $doc->createElement('ram:InvoiceDueDateTime');
-            $dateString = $doc->createElement('udt:DateTimeString', $facture->getDateEcheance()->format('Ymd'));
-            $dateString->setAttribute('format', '102');
-            $invoiceDue->appendChild($dateString);
-            $settlement->appendChild($invoiceDue);
-        }
-
-        if ($facture->getDateLivraison()) {
-            $delivery = $doc->createElement('ram:ActualDeliverySupplyChainEvent');
-            $occurrence = $doc->createElement('ram:OccurrenceDateTime');
-            $dateString = $doc->createElement('udt:DateTimeString', $facture->getDateLivraison()->format('Ymd'));
-            $dateString->setAttribute('format', '102');
-            $occurrence->appendChild($dateString);
-            $delivery->appendChild($occurrence);
-            $sctt->appendChild($delivery);
-        }
-
-        // Référence paiement
-        if ($facture->getReferencePaiement()) {
-            $settlement->appendChild($doc->createElement('ram:PaymentReference', $facture->getReferencePaiement()));
-        }
-
-        // --- Enregistrement optionnel ---
-        if ($filePath) {
-            $doc->save($filePath);
-        }
-
-        return $doc->saveXML();
+        return $tmpXml;
     }
 
-    // /**
-    //  * Valide le XML Factur-X
-    //  */
-    // public function validateXml(string $xml): void
-    // {
-    //     $validator = new XsdValidator();
-    //     if (!$validator->validate($xml)) {
-    //         $errors = $validator->getErrors();
-    //         throw new \RuntimeException("XML Factur-X invalide : " . implode("; ", $errors));
-    //     }
-    // }
-
     /**
-     * Embed le XML dans un PDF/A-3
+     * Génère un PDF Factur-X avec XML intégré
      */
-    public function embedXmlInPdf(string $pdfPath, string $xmlContent, string $destPdf): void
+    public function buildPdfFacturX(Facture $facture, string $outputPdfPath): void
     {
-        $writer = new Writer();
-        $writer->generate($pdfPath, $xmlContent, $destPdf);
+        // 1️⃣ Générer le XML
+        $xmlPath = $this->buildXml($facture);
+
+        // 2️⃣ Générer le PDF avec TCPDF
+        $pdf = new TCPDF();
+        $pdf->setPrintHeader(false);
+        $pdf->setPrintFooter(false);
+        $pdf->AddPage();
+
+        // 3️⃣ Générer le HTML depuis Twig
+        $html = $this->twig->render('/facture/pdf_template.html.twig', [
+            'facture' => $facture
+        ]);
+
+        $pdf->writeHTML($html, true, false, true, false, '');
+
+        // 4️⃣ Ajouter le XML en tant que pièce jointe (Factur-X compliant)
+        $pdf->Annotation(
+            0,
+            0,
+            1,
+            1,
+            $xmlPath,
+            [
+                'Subtype' => 'FileAttachment',
+                'Name' => 'PushPin',
+                'FS' => 'Factur-X.xml',
+                'Contents' => 'Factur-X XML',
+                'Type' => 'application/xml',
+            ]
+        );
+
+        // 5️⃣ Ajouter les métadonnées
+        $pdf->SetCreator('Factur-X PHP Service');
+        $pdf->SetAuthor($facture->getNomFournisseur());
+        $pdf->SetTitle("Facture {$facture->getNumeroFacture()}");
+        $pdf->SetSubject('Factur-X Invoice');
+        $pdf->SetKeywords('Factur-X, ZUGFeRD, Invoice, PDF, XML');
+
+        // 6️⃣ Sauvegarde finale
+        $pdf->Output($outputPdfPath, 'F');
     }
 }

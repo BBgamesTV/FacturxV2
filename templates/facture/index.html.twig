@@ -43,6 +43,7 @@
 							</td>
 							<td class="px-4 py-3 text-right space-x-2">
 								<a href="{{ path('facture_show', {id: facture.id}) }}" class="px-3 py-1 bg-indigo-500 text-white rounded hover:bg-indigo-600">Voir</a>
+								<a href="{{ path('facture_download_facturx', {id: facture.id}) }}" class="px-3 py-1 bg-cyan-500 text-white rounded hover:bg-cyan-600">Télécharger</a>
 								<a href="{{ path('facture_edit', {id: facture.id}) }}" class="px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600">Modifier</a>
 								<form method="post" action="{{ path('facture_delete', {id: facture.id}) }}" class="inline" onsubmit="return confirm('Confirmer la suppression ?');">
 									<input type="hidden" name="_token" value="{{ csrf_token('delete' ~ facture.id) }}">
@@ -83,4 +84,3 @@
 		</div>
 	{% endif %}
 {% endblock %}
-

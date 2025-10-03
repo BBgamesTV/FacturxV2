@@ -1,30 +1,203 @@
+{# templates/facture/show.html.twig #}
 <!DOCTYPE html>
 <html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <title>Facture {{ facture.numeroFacture }}</title>
-    <style>
-        body { font-family: sans-serif; font-size: 12px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 5px; border: 1px solid #333; text-align: left; }
-    </style>
-</head>
-<body>
-    <h1>Facture {{ facture.numeroFacture }}</h1>
-    <p>Date: {{ facture.dateFacture|date('d/m/Y') }}</p>
+	<head>
+		<meta charset="UTF-8">
+		<title>Facture
+			{{ facture.numeroFacture }}</title>
+		<script src="https://cdn.tailwindcss.com"></script>
+		<script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+		<style>
+			@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700 &display=swap');
+			body {
+				font-family: 'Inter', sans-serif;
+			}
+			.invoice-header {
+				background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+			}
+			.divider {
+				border-bottom: 2px dashed #e5e7eb;
+				margin: 1.5rem 0;
+			}
+			.total-row {
+				background-color: #f9fafb;
+			}
+			.footer-text {
+				color: #6b7280;
+			}
+			@media print {
+				.no-print {
+					display: none;
+				}
+				body {
+					background: white;
+					font-size: 12pt;
+				}
+				section {
+					page-break-inside: avoid;
+				}
+			}
+		</style>
+	</head>
+	<body class="bg-gray-50">
+		<div
+			class="max-w-4xl mx-auto my-8 bg-white shadow-lg rounded-lg overflow-hidden print:shadow-none">
 
-    <h2>Fournisseur</h2>
-    <p>{{ facture.nomFournisseur }}<br>SIREN: {{ facture.sirenFournisseur }}</p>
+			<!-- Header -->
+			<header class="invoice-header text-white px-8 py-6">
+				<div class="flex justify-between items-center">
+					<div>
+						<h1 class="text-3xl font-bold">FACTURE</h1>
+						<p class="mt-2">Date:
+							{{ facture.dateFacture|date('d/m/Y') }}</p>
+						<p class="text-white/90">Numéro:
+							{{ facture.numeroFacture }}</p>
+					</div>
+					<div class="text-right">
+						<div class="bg-white/20 p-3 rounded-lg inline-block">
+							<i data-feather="file-text" class="w-8 h-8"></i>
+						</div>
+					</div>
+				</div>
+			</header>
 
-    <h2>Acheteur</h2>
-    <p>{{ facture.nomAcheteur }}<br>SIREN: {{ facture.sirenAcheteur }}</p>
+			<!-- Fournisseur & Client -->
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6 px-8 py-6">
+				<div>
+					<h2 class="text-lg font-semibold text-gray-800 mb-3 border-b-2 border-blue-500 inline-block">FOURNISSEUR</h2>
+					<div class="space-y-1">
+						<p class="font-medium">{{ facture.nomFournisseur }}</p>
+						<p>SIREN:
+							{{ facture.sirenFournisseur }}</p>
+						{% if facture.siretFournisseur %}
+							<p>SIRET:
+								{{ facture.siretFournisseur }}</p>
+						{% endif %}
+						{% if facture.tvaFournisseur %}
+							<p>TVA:
+								{{ facture.tvaFournisseur }}</p>
+						{% endif %}
+						<p>30 rue André Theuriet - 37000 Tours</p>
 
-    <h2>Montants</h2>
-    <table>
-        <tr><th>Montant HT</th><td>{{ facture.totalHT }}</td></tr>
-        <tr><th>TVA</th><td>{{ facture.totalTVA }}</td></tr>
-        <tr><th>Total TTC</th><td>{{ facture.totalTTC }}</td></tr>
-        <tr><th>Net à payer</th><td>{{ facture.netAPayer }}</td></tr>
-    </table>
-</body>
+
+					</div>
+				</div>
+				<div>
+					<h2 class="text-lg font-semibold text-gray-800 mb-3 border-b-2 border-blue-500 inline-block">CLIENT</h2>
+					<div class="space-y-1">
+						<p class="font-medium">{{ facture.nomAcheteur }}</p>
+						<p>SIREN:
+							{{ facture.sirenAcheteur }}</p>
+						{# <p>{{ facture.adresseAcheteur }}</p> #}
+					</div>
+				</div>
+			</div>
+
+			<div class="divider"></div>
+
+			<!-- Détails facture -->
+			<div class="px-8 py-4">
+				<h2 class="text-lg font-semibold text-gray-800 mb-4 border-b-2 border-blue-500 inline-block">DÉTAIL DE LA FACTURE</h2>
+				<div class="overflow-x-auto">
+					{% if facture.lignes is not empty %}
+						<table class="w-full">
+							<thead class="bg-gray-100">
+								<tr>
+									<th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Désignation</th>
+									<th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Référence</th>
+									<th class="py-3 px-4 text-right text-sm font-medium text-gray-700">Qté</th>
+									<th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Unité</th>
+									<th class="py-3 px-4 text-right text-sm font-medium text-gray-700">Prix HT</th>
+									<th class="py-3 px-4 text-right text-sm font-medium text-gray-700">Montant HT</th>
+									<th class="py-3 px-4 text-right text-sm font-medium text-gray-700">TVA</th>
+									<th class="py-3 px-4 text-right text-sm font-medium text-gray-700">TTC</th>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-gray-200">
+								{% for ligne in facture.lignes %}
+									<tr>
+										<td class="py-3 px-4">{{ ligne.designation }}</td>
+										<td class="py-3 px-4">{{ ligne.reference }}</td>
+										<td class="py-3 px-4 text-right">{{ ligne.quantite }}</td>
+										<td class="py-3 px-4">{{ ligne.unite }}</td>
+										<td class="py-3 px-4 text-right">{{ ligne.prixUnitaireHT|number_format(2, ',', ' ') }}
+											€</td>
+										<td class="py-3 px-4 text-right">{{ ligne.montantHT|number_format(2, ',', ' ') }}
+											€</td>
+										<td class="py-3 px-4 text-right">{{ ligne.montantTVA|number_format(2, ',', ' ') }}
+											€</td>
+										<td class="py-3 px-4 text-right">{{ ligne.montantTTC|number_format(2, ',', ' ') }}
+											€</td>
+									</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					{% else %}
+						<p>Aucune ligne de facture disponible.</p>
+					{% endif %}
+				</div>
+			</div>
+
+			<div class="divider"></div>
+
+			<!-- Totaux + Paiement -->
+			<div class="px-8 py-4">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+					<div>
+						<h2 class="text-lg font-semibold text-gray-800 mb-3 border-b-2 border-blue-500 inline-block">CONDITIONS DE PAIEMENT</h2>
+						<div class="space-y-1">
+							<p>Mode de règlement:
+								{{ facture.modePaiement }}</p>
+							<p>IBAN:
+								FR76 3000 6000 0112 3456 7890 189</p>
+
+							<p>BIC:
+								BNPAFRPPXXX</p>
+
+							<p>Date d'échéance:
+								{{ facture.dateEcheance|date('d/m/Y') }}</p>
+						</div>
+					</div>
+					<div>
+						<table class="w-full">
+							<tbody>
+								<tr class="total-row">
+									<th class="py-2 px-4 text-left font-medium">Total HT</th>
+									<td class="py-2 px-4 text-right">{{ facture.totalHT|number_format(2, ',', ' ') }}
+										€</td>
+								</tr>
+								<tr class="total-row">
+									<th class="py-2 px-4 text-left font-medium">Total TVA</th>
+									<td class="py-2 px-4 text-right">{{ facture.totalTVA|number_format(2, ',', ' ') }}
+										€</td>
+								</tr>
+								<tr class="bg-gray-100">
+									<th class="py-3 px-4 text-left font-bold">Total TTC</th>
+									<td class="py-3 px-4 text-right font-bold">{{ facture.totalTTC|number_format(2, ',', ' ') }}
+										€</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+			<!-- Footer -->
+			<footer class="px-8 py-6 bg-gray-50 text-center footer-text text-sm">
+				<p>Merci pour votre confiance. Pour toute question, contactez-nous à
+					{{ facture.emailFournisseur ?? 'contact@entreprise.com' }}</p>
+				<p class="mt-2">Facture générée automatiquement - Oroya</p>
+				<div class="mt-4 no-print">
+					<button onclick="window.print()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg inline-flex items-center">
+						<i data-feather="printer" class="mr-2"></i>
+						Imprimer la facture
+					</button>
+				</div>
+			</footer>
+		</div>
+
+		<script>
+			feather.replace();
+		</script>
+	</body>
 </html>

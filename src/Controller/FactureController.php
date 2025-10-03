@@ -102,7 +102,7 @@ class FactureController extends AbstractController
     #[Route('/{id}', name: 'facture_show', methods: ['GET'])]
     public function show(Facture $facture): Response
     {
-        return $this->render('facture/show.html.twig', [
+        return $this->render('facture/pdf_template.html.twig', [
             'facture' => $facture,
         ]);
     }
@@ -140,33 +140,27 @@ class FactureController extends AbstractController
     #[Route('/{id}/download', name: 'facture_download_facturx', methods: ['GET'])]
     public function downloadFacturx(Facture $facture, FacturxService $fxService): Response
     {
-        $xmlFilePath = $this->getParameter('kernel.project_dir') . '/public/factures/' . $facture->getNumeroFacture() . '.xml';
-        $xml = $fxService->buildXml($facture, $xmlFilePath);
+        $projectDir = $this->getParameter('kernel.project_dir');
+        $publicDir = $projectDir . '/public/factures';
 
-        // Recrée le PDF avec Dompdf (comme dans new)
-        $html = $this->renderView('facture/pdf_template.html.twig', [
+        if (!is_dir($publicDir)) {
+            mkdir($publicDir, 0777, true);
+        }
+
+        $pdfFileName = 'facture_' . $facture->getNumeroFacture() . '_fx.pdf';
+        $pdfFilePath = $publicDir . '/' . $pdfFileName;
+
+        // Génération du PDF Factur-X avec XML intégré
+        $fxService->buildPdfFacturX($facture, $pdfFilePath);
+
+        // Retourne le PDF au navigateur
+        // return $this->file(
+        //     $pdfFilePath,
+        //     $pdfFileName,
+        //     ResponseHeaderBag::DISPOSITION_INLINE
+        // );
+        return $this->render('facture/pdf_template.html.twig', [
             'facture' => $facture,
         ]);
-
-        $options = new Options();
-        $options->set('defaultFont', 'DejaVu Sans');
-        $options->setIsRemoteEnabled(true);
-
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-
-        $pdfSource = $this->getParameter('kernel.project_dir') . '/public/factures/facture_' . $facture->getId() . '_template.pdf';
-        file_put_contents($pdfSource, $dompdf->output());
-
-        $pdfDest = $this->getParameter('kernel.project_dir') . '/public/factures/facture_' . $facture->getId() . '_fx.pdf';
-        $fxService->embedXmlInPdf($pdfSource, $xml, $pdfDest);
-
-        return $this->file(
-            $pdfDest,
-            'facture_' . $facture->getNumeroFacture() . '.pdf',
-            ResponseHeaderBag::DISPOSITION_INLINE
-        );
     }
 }
