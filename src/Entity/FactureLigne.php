@@ -43,11 +43,26 @@ class FactureLigne
     #[ORM\Column(type: "decimal", precision: 10, scale: 2)]
     private float $montantTTC;
 
+    // ✅ Ajout du numéro de ligne
+    #[ORM\Column(type: "integer", nullable: true)]
+    private ?int $numeroLigne = null;
+
     // GETTERS & SETTERS...
 
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getNumeroLigne(): ?int
+    {
+        return $this->numeroLigne;
+    }
+
+    public function setNumeroLigne(?int $numeroLigne): self
+    {
+        $this->numeroLigne = $numeroLigne;
+        return $this;
     }
 
     public function getFacture(): Facture

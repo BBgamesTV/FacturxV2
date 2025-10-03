@@ -2,13 +2,12 @@
 
 namespace App\Controller;
 
-use Dompdf\Dompdf;
-use Dompdf\Options;
 use App\Entity\Facture;
 use App\Entity\FactureLigne;
-use App\Form\FactureType;
-use App\Service\FacturxService;
 use App\Repository\FactureRepository;
+use App\Entity\Client;
+use App\Service\FacturxService;
+use App\Form\FactureType;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -24,25 +23,13 @@ class FactureController extends AbstractController
         if ($request->isMethod('POST')) {
             $facture = new Facture();
 
-            // ✅ Hydratation des champs simples
+            // ✅ Hydratation des champs simples de la facture
             $facture
                 ->setNumeroFacture($request->request->get('numeroFacture'))
                 ->setDateFacture(new \DateTime($request->request->get('dateFacture')))
                 ->setTypeFacture($request->request->get('typeFacture'))
                 ->setDevise($request->request->get('devise'))
-                ->setNomFournisseur($request->request->get('nomFournisseur'))
-                ->setSirenFournisseur($request->request->get('sirenFournisseur'))
-                ->setSiretFournisseur($request->request->get('siretFournisseur'))
-                ->setTvaFournisseur($request->request->get('tvaFournisseur'))
-                ->setCodePaysFournisseur($request->request->get('codePaysFournisseur'))
-                ->setEmailFournisseur($request->request->get('emailFournisseur'))
-                ->setNomAcheteur($request->request->get('nomAcheteur'))
-                ->setSirenAcheteur($request->request->get('sirenAcheteur'))
-                ->setEmailAcheteur($request->request->get('emailAcheteur'))
                 ->setCommandeAcheteur($request->request->get('commandeAcheteur'))
-                ->setTotalHT((float) $request->request->get('totalHT'))
-                ->setTotalTVA((float) $request->request->get('totalTVA'))
-                ->setTotalTTC((float) $request->request->get('totalTTC'))
                 ->setNetAPayer((float) $request->request->get('netAPayer'))
                 ->setDateEcheance($request->request->get('dateEcheance') ? new \DateTime($request->request->get('dateEcheance')) : null)
                 ->setDateLivraison($request->request->get('dateLivraison') ? new \DateTime($request->request->get('dateLivraison')) : null)
@@ -55,9 +42,38 @@ class FactureController extends AbstractController
                 ->setReferenceBonLivraison($request->request->get('referenceBonLivraison'))
                 ->setProfilFacturX($request->request->get('profilFacturX'));
 
+            // ✅ Création du client fournisseur
+            $fournisseur = new Client();
+            $fournisseur
+                ->setNom($request->request->get('nomFournisseur'))
+                ->setSiren($request->request->get('sirenFournisseur'))
+                ->setSiret($request->request->get('siretFournisseur'))
+                ->setNumeroTva($request->request->get('tvaFournisseur'))
+                ->setCodePays($request->request->get('codePaysFournisseur'))
+                ->setEmail($request->request->get('emailFournisseur'))
+                ->setAdresse($request->request->get('adresseFournisseur'))
+                ->setVille($request->request->get('villeFournisseur'))
+                ->setCodePostal($request->request->get('codePostalFournisseur'));
+
+            // ✅ Création du client acheteur
+            $acheteur = new Client();
+            $acheteur
+                ->setNom($request->request->get('nomAcheteur'))
+                ->setSiren($request->request->get('sirenAcheteur'))
+                ->setNumeroTva($request->request->get('tvaAcheteur'))
+                ->setCodePays($request->request->get('codePaysAcheteur'))
+                ->setEmail($request->request->get('emailAcheteur'))
+                ->setAdresse($request->request->get('adresseAcheteur'))
+                ->setVille($request->request->get('villeAcheteur'))
+                ->setCodePostal($request->request->get('codePostalAcheteur'));
+
+            $facture
+                ->setFournisseur($fournisseur)
+                ->setAcheteur($acheteur);
+
             // ✅ Gestion des lignes
-            $lignes = $request->request->all('lignes'); // récupère le tableau lignes[0], lignes[1], ...
-            foreach ($lignes as $ligneData) {
+            $lignes = $request->request->all('lignes');
+            foreach ($lignes as $index => $ligneData) {
                 $ligne = new FactureLigne();
                 $ligne
                     ->setDesignation($ligneData['designation'])
@@ -65,7 +81,8 @@ class FactureController extends AbstractController
                     ->setQuantite((float) $ligneData['quantite'])
                     ->setUnite($ligneData['unite'] ?? null)
                     ->setPrixUnitaireHT((float) $ligneData['prixUnitaireHT'])
-                    ->setTauxTVA((float) $ligneData['tauxTVA']);
+                    ->setTauxTVA((float) $ligneData['tauxTVA'])
+                    ->setNumeroLigne($index + 1); // ✅ Respect BR-21 (identifiant unique par ligne)
 
                 // Calculs automatiques
                 $montantHT = $ligne->getQuantite() * $ligne->getPrixUnitaireHT();
@@ -80,6 +97,8 @@ class FactureController extends AbstractController
                 $facture->addLigne($ligne);
             }
 
+            $em->persist($fournisseur);
+            $em->persist($acheteur);
             $em->persist($facture);
             $em->flush();
 

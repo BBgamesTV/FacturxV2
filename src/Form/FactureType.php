@@ -3,6 +3,8 @@
 namespace App\Form;
 
 use App\Entity\Facture;
+use App\Entity\Client; // ou Fournisseur si tu as une entité séparée
+use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -34,13 +36,19 @@ class FactureType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-control']
             ])
-            ->add('nomFournisseur', TextType::class, [
+            ->add('fournisseur', EntityType::class, [
+                'class' => Client::class,
+                'choice_label' => 'nom', // ou 'raisonSociale' selon ton entité
                 'label' => 'Fournisseur',
-                'attr' => ['placeholder' => 'Nom du fournisseur']
+                'placeholder' => 'Sélectionner un fournisseur',
+                'attr' => ['class' => 'form-control']
             ])
-            ->add('nomAcheteur', TextType::class, [
+            ->add('acheteur', EntityType::class, [
+                'class' => Client::class,
+                'choice_label' => 'nom', // ou 'raisonSociale' selon ton entité
                 'label' => 'Acheteur',
-                'attr' => ['placeholder' => 'Nom de l\'acheteur']
+                'placeholder' => 'Sélectionner un client',
+                'attr' => ['class' => 'form-control']
             ])
             ->add('totalHT', MoneyType::class, [
                 'currency' => 'EUR',
@@ -52,14 +60,13 @@ class FactureType extends AbstractType
                 'label' => 'Total TTC',
                 'attr' => ['step' => 0.01]
             ])
-            // 🔥 Ajout des lignes de factures (CollectionType)
             ->add('lignes', CollectionType::class, [
                 'entry_type' => FactureLigneType::class,
                 'label' => 'Lignes de facture',
-                'allow_add' => true,        // autorise l’ajout dynamique
-                'allow_delete' => true,     // autorise la suppression
-                'by_reference' => false,    // nécessaire pour les relations OneToMany
-                'prototype' => true,        // utile pour JS dynamique
+                'allow_add' => true,
+                'allow_delete' => true,
+                'by_reference' => false,
+                'prototype' => true,
                 'attr' => [
                     'class' => 'facture-lignes-collection'
                 ]

@@ -4,7 +4,6 @@ namespace App\Entity;
 
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
@@ -14,6 +13,15 @@ class Facture
     #[ORM\GeneratedValue]
     #[ORM\Column(type: "integer")]
     private ?int $id = null;
+
+    #[ORM\Column(type: "string", length: 255, nullable: true)]
+    private ?string $commandeAcheteur = null;
+
+    #[ORM\ManyToOne(cascade: ["persist"])]
+    private ?Client $fournisseur = null;
+
+    #[ORM\ManyToOne(cascade: ["persist"])]
+    private ?Client $acheteur = null;
 
     #[ORM\Column(type: "string", length: 50)]
     private string $numeroFacture;
@@ -26,66 +34,6 @@ class Facture
 
     #[ORM\Column(type: "string", length: 3)]
     private string $devise;
-
-    #[ORM\Column(type: "string", length: 255)]
-    private string $nomFournisseur;
-
-    #[ORM\Column(type: "string", length: 20)]
-    private string $sirenFournisseur;
-
-    #[ORM\Column(type: "string", length: 20, nullable: true)]
-    private ?string $siretFournisseur = null;
-
-    #[ORM\Column(type: "string", length: 20, nullable: true)]
-    private ?string $tvaFournisseur = null;
-
-    #[ORM\Column(type: "string", length: 2)]
-    private string $codePaysFournisseur;
-
-    #[ORM\Column(type: "string", length: 255)]
-    private string $emailFournisseur;
-
-    #[ORM\Column(type: "string", length: 255)]
-    private string $nomAcheteur;
-
-    #[ORM\Column(type: "string", length: 255)]
-    private string $adresseFournisseur;
-
-    #[ORM\Column(type: "string", length: 255)]
-    private string $villeFournisseur;
-
-    #[ORM\Column(type: "string", length: 255)]
-    private string $codePostalFournisseur;
-
-    #[ORM\Column(type: "string", length: 255)]
-    private string $adresseAcheteur;
-
-    #[ORM\Column(type: "string", length: 255)]
-    private string $villeAcheteur;
-
-    #[ORM\Column(type: "string", length: 255)]
-    private string $codePostalAcheteur;
-
-    #[ORM\Column(type: "string", length: 20)]
-    private string $sirenAcheteur;
-
-    #[ORM\Column(type: "string", length: 2)]
-    private string $codePaysAcheteur;
-
-    #[ORM\Column(type: "string", length: 255)]
-    private string $emailAcheteur;
-
-    #[ORM\Column(type: "string", length: 20, nullable: true)]
-    private ?string $commandeAcheteur = null;
-
-    #[ORM\Column(type: "decimal", precision: 10, scale: 2)]
-    private float $totalHT;
-
-    #[ORM\Column(type: "decimal", precision: 10, scale: 2)]
-    private float $totalTVA;
-
-    #[ORM\Column(type: "decimal", precision: 10, scale: 2)]
-    private float $totalTTC;
 
     #[ORM\Column(type: "decimal", precision: 10, scale: 2)]
     private float $netAPayer;
@@ -121,24 +69,58 @@ class Facture
     private string $profilFacturX;
 
     #[ORM\OneToMany(mappedBy: "facture", targetEntity: FactureLigne::class, cascade: ["persist", "remove"], orphanRemoval: true)]
-    private iterable $lignes;
+    private Collection $lignes;
+
     public function __construct()
     {
         $this->lignes = new ArrayCollection();
     }
 
-
-    // GETTERS & SETTERS
+    // ---------------- GETTERS & SETTERS ----------------
 
     public function getId(): ?int
     {
         return $this->id;
     }
 
+    public function getCommandeAcheteur(): ?string
+    {
+        return $this->commandeAcheteur;
+    }
+
+    public function setCommandeAcheteur(?string $commandeAcheteur): self
+    {
+        $this->commandeAcheteur = $commandeAcheteur;
+        return $this;
+    }
+
+    public function getFournisseur(): ?Client
+    {
+        return $this->fournisseur;
+    }
+
+    public function setFournisseur(?Client $fournisseur): self
+    {
+        $this->fournisseur = $fournisseur;
+        return $this;
+    }
+
+    public function getAcheteur(): ?Client
+    {
+        return $this->acheteur;
+    }
+
+    public function setAcheteur(?Client $acheteur): self
+    {
+        $this->acheteur = $acheteur;
+        return $this;
+    }
+
     public function getNumeroFacture(): string
     {
         return $this->numeroFacture;
     }
+
     public function setNumeroFacture(string $numeroFacture): self
     {
         $this->numeroFacture = $numeroFacture;
@@ -149,6 +131,7 @@ class Facture
     {
         return $this->dateFacture;
     }
+
     public function setDateFacture(\DateTimeInterface $dateFacture): self
     {
         $this->dateFacture = $dateFacture;
@@ -159,6 +142,7 @@ class Facture
     {
         return $this->typeFacture;
     }
+
     public function setTypeFacture(string $typeFacture): self
     {
         $this->typeFacture = $typeFacture;
@@ -169,207 +153,10 @@ class Facture
     {
         return $this->devise;
     }
+
     public function setDevise(string $devise): self
     {
         $this->devise = $devise;
-        return $this;
-    }
-
-    public function getNomFournisseur(): string
-    {
-        return $this->nomFournisseur;
-    }
-    public function setNomFournisseur(string $nomFournisseur): self
-    {
-        $this->nomFournisseur = $nomFournisseur;
-        return $this;
-    }
-
-    public function getSirenFournisseur(): string
-    {
-        return $this->sirenFournisseur;
-    }
-    public function setSirenFournisseur(string $sirenFournisseur): self
-    {
-        $this->sirenFournisseur = $sirenFournisseur;
-        return $this;
-    }
-
-    public function getSiretFournisseur(): ?string
-    {
-        return $this->siretFournisseur;
-    }
-    public function setSiretFournisseur(?string $siretFournisseur): self
-    {
-        $this->siretFournisseur = $siretFournisseur;
-        return $this;
-    }
-
-    public function getTvaFournisseur(): ?string
-    {
-        return $this->tvaFournisseur;
-    }
-    public function setTvaFournisseur(?string $tvaFournisseur): self
-    {
-        $this->tvaFournisseur = $tvaFournisseur;
-        return $this;
-    }
-
-    public function getCodePaysFournisseur(): string
-    {
-        return $this->codePaysFournisseur;
-    }
-    public function setCodePaysFournisseur(string $codePaysFournisseur): self
-    {
-        $this->codePaysFournisseur = $codePaysFournisseur;
-        return $this;
-    }
-
-    public function getCodePaysAcheteur(): string
-    {
-        return $this->codePaysAcheteur;
-    }
-    public function setCodePaysAcheteur(string $codePaysAcheteur): self
-    {
-        $this->codePaysAcheteur = $codePaysAcheteur;
-        return $this;
-    }
-
-    public function getEmailFournisseur(): string
-    {
-        return $this->emailFournisseur;
-    }
-    public function setEmailFournisseur(string $emailFournisseur): self
-    {
-        $this->emailFournisseur = $emailFournisseur;
-        return $this;
-    }
-
-    public function getAdresseFournisseur(): ?string
-    {
-        return $this->adresseFournisseur;
-    }
-    public function setAdresseFournisseur(?string $adresseFournisseur): self
-    {
-        $this->adresseFournisseur = $adresseFournisseur;
-        return $this;
-    }
-    public function getVilleFournisseur(): ?string
-    {
-        return $this->villeFournisseur;
-    }
-    public function setVilleFournisseur(?string $villeFournisseur): self
-    {
-        $this->villeFournisseur = $villeFournisseur;
-        return $this;
-    }
-
-    public function getCodePostalFournisseur(): ?string
-    {
-        return $this->codePostalFournisseur;
-    }
-    public function setCodePostalFournisseur(?string $codePostalFournisseur): self
-    {
-        $this->codePostalFournisseur = $codePostalFournisseur;
-        return $this;
-    }
-
-    public function getAdresseAcheteur(): ?string
-    {
-        return $this->adresseAcheteur;
-    }
-    public function setAdresseAcheteur(?string $adresseAcheteur): self
-    {
-        $this->adresseAcheteur = $adresseAcheteur;
-        return $this;
-    }
-    public function getVilleAcheteur(): ?string
-    {
-        return $this->villeAcheteur;
-    }
-    public function setVilleAcheteur(?string $villeAcheteur): self
-    {
-        $this->villeAcheteur = $villeAcheteur;
-        return $this;
-    }
-
-    public function getCodePostalAcheteur(): ?string
-    {
-        return $this->codePostalAcheteur;
-    }
-    public function setCodePostalAcheteur(?string $codePostalAcheteur): self
-    {
-        $this->codePostalAcheteur = $codePostalAcheteur;
-        return $this;
-    }
-
-    public function getNomAcheteur(): string
-    {
-        return $this->nomAcheteur;
-    }
-    public function setNomAcheteur(string $nomAcheteur): self
-    {
-        $this->nomAcheteur = $nomAcheteur;
-        return $this;
-    }
-
-    public function getSirenAcheteur(): string
-    {
-        return $this->sirenAcheteur;
-    }
-    public function setSirenAcheteur(string $sirenAcheteur): self
-    {
-        $this->sirenAcheteur = $sirenAcheteur;
-        return $this;
-    }
-
-    public function getEmailAcheteur(): string
-    {
-        return $this->emailAcheteur;
-    }
-    public function setEmailAcheteur(string $emailAcheteur): self
-    {
-        $this->emailAcheteur = $emailAcheteur;
-        return $this;
-    }
-
-    public function getCommandeAcheteur(): ?string
-    {
-        return $this->commandeAcheteur;
-    }
-    public function setCommandeAcheteur(?string $commandeAcheteur): self
-    {
-        $this->commandeAcheteur = $commandeAcheteur;
-        return $this;
-    }
-
-    public function getTotalHT(): float
-    {
-        return array_sum(array_map(fn($l) => $l->getMontantHT(), $this->lignes->toArray()));
-    }
-    public function setTotalHT(float $totalHT): self
-    {
-        $this->totalHT = $totalHT;
-        return $this;
-    }
-
-    public function getTotalTVA(): float
-    {
-        return array_sum(array_map(fn($l) => $l->getMontantTVA(), $this->lignes->toArray()));
-    }
-    public function setTotalTVA(float $totalTVA): self
-    {
-        $this->totalTVA = $totalTVA;
-        return $this;
-    }
-
-    public function getTotalTTC(): float
-    {
-        return array_sum(array_map(fn($l) => $l->getMontantTTC(), $this->lignes->toArray()));
-    }
-    public function setTotalTTC(float $totalTTC): self
-    {
-        $this->totalTTC = $totalTTC;
         return $this;
     }
 
@@ -377,6 +164,7 @@ class Facture
     {
         return $this->netAPayer;
     }
+
     public function setNetAPayer(float $netAPayer): self
     {
         $this->netAPayer = $netAPayer;
@@ -387,6 +175,7 @@ class Facture
     {
         return $this->dateEcheance;
     }
+
     public function setDateEcheance(?\DateTimeInterface $dateEcheance): self
     {
         $this->dateEcheance = $dateEcheance;
@@ -397,6 +186,7 @@ class Facture
     {
         return $this->dateLivraison;
     }
+
     public function setDateLivraison(?\DateTimeInterface $dateLivraison): self
     {
         $this->dateLivraison = $dateLivraison;
@@ -407,6 +197,7 @@ class Facture
     {
         return $this->modePaiement;
     }
+
     public function setModePaiement(?string $modePaiement): self
     {
         $this->modePaiement = $modePaiement;
@@ -417,6 +208,7 @@ class Facture
     {
         return $this->referencePaiement;
     }
+
     public function setReferencePaiement(?string $referencePaiement): self
     {
         $this->referencePaiement = $referencePaiement;
@@ -427,6 +219,7 @@ class Facture
     {
         return $this->tvaDetails;
     }
+
     public function setTvaDetails(?array $tvaDetails): self
     {
         $this->tvaDetails = $tvaDetails;
@@ -437,6 +230,7 @@ class Facture
     {
         return $this->remisePied;
     }
+
     public function setRemisePied(?float $remisePied): self
     {
         $this->remisePied = $remisePied;
@@ -447,6 +241,7 @@ class Facture
     {
         return $this->chargesPied;
     }
+
     public function setChargesPied(?float $chargesPied): self
     {
         $this->chargesPied = $chargesPied;
@@ -457,6 +252,7 @@ class Facture
     {
         return $this->referenceContrat;
     }
+
     public function setReferenceContrat(?string $referenceContrat): self
     {
         $this->referenceContrat = $referenceContrat;
@@ -467,6 +263,7 @@ class Facture
     {
         return $this->referenceBonLivraison;
     }
+
     public function setReferenceBonLivraison(?string $referenceBonLivraison): self
     {
         $this->referenceBonLivraison = $referenceBonLivraison;
@@ -477,13 +274,14 @@ class Facture
     {
         return $this->profilFacturX;
     }
+
     public function setProfilFacturX(string $profilFacturX): self
     {
         $this->profilFacturX = $profilFacturX;
         return $this;
     }
 
-    public function getLignes()
+    public function getLignes(): Collection
     {
         return $this->lignes;
     }
@@ -505,5 +303,22 @@ class Facture
             }
         }
         return $this;
+    }
+
+    // ---------------- CALCUL DES TOTALS ----------------
+
+    public function getTotalHT(): float
+    {
+        return array_sum(array_map(fn($l) => $l->getMontantHT(), $this->lignes->toArray()));
+    }
+
+    public function getTotalTVA(): float
+    {
+        return array_sum(array_map(fn($l) => $l->getMontantTVA(), $this->lignes->toArray()));
+    }
+
+    public function getTotalTTC(): float
+    {
+        return array_sum(array_map(fn($l) => $l->getMontantTTC(), $this->lignes->toArray()));
     }
 }

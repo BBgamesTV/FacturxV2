@@ -8,7 +8,9 @@
 		<h1 class="text-2xl font-bold mb-6 text-gray-800">📑 Liste des Factures</h1>
 
 		{% if factures is empty %}
-			<div class="bg-yellow-100 text-yellow-800 p-4 rounded-md text-center shadow">Aucune facture disponible.</div>
+			<div class="bg-yellow-100 text-yellow-800 p-4 rounded-md text-center shadow">
+				Aucune facture disponible.
+			</div>
 		{% else %}
 			<div class="overflow-x-auto bg-white rounded-lg shadow">
 				<table class="min-w-full text-sm text-left">
@@ -31,8 +33,8 @@
 								<td class="px-4 py-2">{{ facture.id }}</td>
 								<td class="px-4 py-2 font-medium">{{ facture.numeroFacture }}</td>
 								<td class="px-4 py-2">{{ facture.dateFacture|date('d/m/Y') }}</td>
-								<td class="px-4 py-2">{{ facture.nomFournisseur }}</td>
-								<td class="px-4 py-2">{{ facture.nomAcheteur }}</td>
+								<td class="px-4 py-2">{{ facture.fournisseur.nom ?? '-' }}</td>
+								<td class="px-4 py-2">{{ facture.acheteur.nom ?? '-' }}</td>
 								<td class="px-4 py-2">{{ facture.totalHT|number_format(2, ',', ' ') }}
 									{{ facture.devise }}</td>
 								<td class="px-4 py-2">{{ facture.totalTTC|number_format(2, ',', ' ') }}
@@ -47,11 +49,9 @@
 										<button class="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600">Supprimer</button>
 									</form>
 								</td>
-
 							</tr>
 							<tr class="bg-gray-300">
 								<td colspan="9" class="px-4 py-2">
-									{# <strong>Lignes :</strong> #}
 									{% if facture.lignes is empty %}
 										<em>Aucune ligne</em>
 									{% else %}
@@ -66,7 +66,8 @@
 													(TVA
 													{{ ligne.tauxTVA }}%) =
 													{{ ligne.montantTTC|number_format(2, ',', ' ') }}
-													{{ facture.devise }}</li>
+													{{ facture.devise }}
+												</li>
 											{% endfor %}
 										</ul>
 									{% endif %}
@@ -79,3 +80,4 @@
 		{% endif %}
 	</div>
 {% endblock %}
+

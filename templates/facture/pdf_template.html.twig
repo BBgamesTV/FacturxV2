@@ -1,4 +1,4 @@
-{# templates/facture/show.html.twig #}
+{# templates/facture/pdf_templates.html.twig #}
 <!DOCTYPE html>
 <html lang="fr">
 	<head>
@@ -58,7 +58,6 @@
 					<div class="logo-badge p-4 rounded-xl flex items-center">
 						<img src="https://www.oroya.fr/wp-content/themes/oroyaV2/dist/assets/img/favicons/android-icon-192x192.png" alt="Logo" class="w-12 h-12">
 					</div>
-
 				</div>
 			</header>
 
@@ -67,29 +66,28 @@
 				<div>
 					<h2 class="text-lg font-semibold text-gray-800 mb-3 border-b-2 border-gray-500 inline-block">FOURNISSEUR</h2>
 					<div class="space-y-1">
-						<p class="font-medium">{{ facture.nomFournisseur }}</p>
+						<p class="font-medium">{{ facture.fournisseur.nom ?? '-' }}</p>
 						<p>SIREN:
-							{{ facture.sirenFournisseur }}</p>
-						{% if facture.siretFournisseur %}
+							{{ facture.fournisseur.siren }}</p>
+						{% if facture.fournisseur.siret %}
 							<p>SIRET:
-								{{ facture.siretFournisseur }}</p>
+								{{ facture.fournisseur.siret }}</p>
 						{% endif %}
-						{% if facture.tvaFournisseur %}
+						{% if facture.fournisseur.tva %}
 							<p>TVA:
-								{{ facture.tvaFournisseur }}</p>
+								{{ facture.fournisseur.tva }}</p>
 						{% endif %}
-						<p>30 rue André Theuriet - 37000 Tours</p>
-
-
+						<p>{{ facture.fournisseur.adresse ?? '-' }},
+							{{ facture.fournisseur.codePostal ?? '-' }}
+							{{ facture.fournisseur.ville }}</p>
 					</div>
 				</div>
 				<div>
 					<h2 class="text-lg font-semibold text-gray-800 mb-3 border-b-2 border-gray-500 inline-block">CLIENT</h2>
 					<div class="space-y-1">
-						<p class="font-medium">{{ facture.nomAcheteur }}</p>
-						<p>SIREN:
-							{{ facture.sirenAcheteur }}</p>
-						{# <p>{{ facture.adresseAcheteur }}</p> #}
+						<p class="font-medium">{{ facture.acheteur.nom ?? '-' }}</p>
+						<p>{{ facture.acheteur.siren ?? '-' }}</p>
+						<p>{{ facture.acheteur.adresse ?? '-' }}</p>
 					</div>
 				</div>
 			</div>
@@ -102,7 +100,6 @@
 				<div class="overflow-x-auto">
 					{% if facture.lignes is not empty %}
 						<table class="w-full border border-gray-300">
-
 							<thead class="bg-gray-100">
 								<tr>
 									<th class="py-3 px-4 text-left text-sm font-medium text-gray-700">Désignation</th>
@@ -115,92 +112,89 @@
 									<th class="py-3 px-4 text-right text-sm font-medium text-gray-700">TTC</th>
 								</tr>
 							</thead>
-							<tbody class="divide-y divide-gray-200"></tbody>
-
-							{% for ligne in facture.lignes %}
-								<tr>
-									<td class="py-3 px-4 text-sm">{{ ligne.designation }}</td>
-
-									<td class="py-3 px-4 text-s">{{ ligne.reference }}</td>
-
-									<td class="py-3 px-4 text-right text-s">{{ ligne.quantite }}</td>
-
-									<td class="py-3 px-4 text-s">{{ ligne.unite }}</td>
-
-									<td class="py-3 px-4 text-right text-sm">{{ ligne.prixUnitaireHT|number_format(2, ',', ' ') }}
-										€</td>
-
-									<td class="py-3 px-4 text-right text-sm">{{ ligne.montantHT|number_format(2, ',', ' ') }}
-										€</td>
-
-
-									<td class="py-3 px-4 text-right text-sm">{{ ligne.montantTVA|number_format(2, ',', ' ') }}
-										€</td>
-									<td class="py-3 px-4 text-right text-sm">{{ ligne.montantTTC|number_format(2, ',', ' ') }}
-										€</td>
-
-								</tr>
-							{% endfor %}
-						</tbody>
-					</table>
-				{% else %}
-					<p>Aucune ligne de facture disponible.</p>
-				{% endif %}
+							<tbody class="divide-y divide-gray-200">
+								{% for ligne in facture.lignes %}
+									<tr>
+										<td class="py-3 px-4 text-sm">{{ ligne.designation }}</td>
+										<td class="py-3 px-4 text-sm">{{ ligne.reference }}</td>
+										<td class="py-3 px-4 text-right text-sm">{{ ligne.quantite }}</td>
+										<td class="py-3 px-4 text-sm">{{ ligne.unite }}</td>
+										<td class="py-3 px-4 text-right text-sm">{{ ligne.prixUnitaireHT|number_format(2, ',', ' ') }}
+											€</td>
+										<td class="py-3 px-4 text-right text-sm">{{ ligne.montantHT|number_format(2, ',', ' ') }}
+											€</td>
+										<td class="py-3 px-4 text-right text-sm">{{ ligne.montantTVA|number_format(2, ',', ' ') }}
+											€</td>
+										<td class="py-3 px-4 text-right text-sm">{{ ligne.montantTTC|number_format(2, ',', ' ') }}
+											€</td>
+									</tr>
+								{% endfor %}
+							</tbody>
+						</table>
+					{% else %}
+						<p>Aucune ligne de facture disponible.</p>
+					{% endif %}
+				</div>
 			</div>
-		</div>
 
-		<div class="divider"></div>
+			<div class="divider"></div>
 
-		<!-- Totaux + Paiement -->
-		<div class="px-8 py-4">
-			<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-				<div>
-					<h2 class="text-lg font-semibold text-gray-800 mb-3 border-b-2 border-gray-500 inline-block">CONDITIONS DE PAIEMENT</h2>
-					<div class="space-y-1">
-						<p>Mode de règlement:
-							{{ facture.modePaiement }}</p>
-						<p>IBAN: FR76 3000 6000 0112 3456 7890 189</p>
-						<p>BIC: BNPAFRPPXXX</p>
-						<p>Date d'échéance:
-							{{ facture.dateEcheance|date('d/m/Y') }}</p>
+			<!-- Totaux + Paiement -->
+			<div class="px-8 py-4">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+					<div>
+						<h2 class="text-lg font-semibold text-gray-800 mb-3 border-b-2 border-gray-500 inline-block">CONDITIONS DE PAIEMENT</h2>
+						<div class="space-y-1">
+							<p>Mode de règlement:
+								{{ facture.modePaiement ?? '-' }}</p>
+							<p>IBAN: FR76 3000 6000 0112 3456 7890 189</p>
+							<p>BIC: BNPAFRPPXXX</p>
+							<p>Date d'échéance:
+								{{ facture.dateEcheance ? facture.dateEcheance|date('d/m/Y') : '-' }}</p>
+						</div>
+					</div>
+					<div>
+						<table class="w-full">
+							<tbody>
+								<tr class="total-row">
+									<th class="py-2 px-4 text-left font-medium">Total HT</th>
+									<td class="py-2 px-4 text-right">{{ facture.totalHT|number_format(2, ',', ' ') }}
+										€</td>
+								</tr>
+								<tr class="total-row">
+									<th class="py-2 px-4 text-left font-medium">Total TVA</th>
+									<td class="py-2 px-4 text-right">{{ facture.totalTVA|number_format(2, ',', ' ') }}
+										€</td>
+								</tr>
+								<tr class="bg-gray-100">
+									<th class="py-3 px-4 text-left font-bold">Total TTC</th>
+									<td class="py-3 px-4 text-right font-bold">{{ facture.totalTTC|number_format(2, ',', ' ') }}
+										€</td>
+								</tr>
+							</tbody>
+						</table>
 					</div>
 				</div>
-				<div>
-					<table class="w-full">
-						<tbody>
-							<tr class="total-row">
-								<th class="py-2 px-4 text-left font-medium">Total HT</th>
-								<td class="py-2 px-4 text-right">{{ facture.totalHT|number_format(2, ',', ' ') }}
-									€</td>
-							</tr>
-							<tr class="total-row">
-								<th class="py-2 px-4 text-left font-medium">Total TVA</th>
-								<td class="py-2 px-4 text-right">{{ facture.totalTVA|number_format(2, ',', ' ') }}
-									€</td>
-							</tr>
-							<tr class="bg-gray-100">
-								<th class="py-3 px-4 text-left font-bold">Total TTC</th>
-								<td class="py-3 px-4 text-right font-bold">{{ facture.totalTTC|number_format(2, ',', ' ') }}
-									€</td>
-							</tr>
-						</tbody>
-					</table>
-				</div>
 			</div>
+
+			<!-- Footer -->
+			<footer class="px-8 py-6 bg-gray-50 text-center footer-text text-sm">
+				<p>Merci pour votre confiance. Pour toute question, contactez-nous à
+					{{ facture.fournisseur.email ?? 'contact@oroya.fr' }}</p>
+				<p class="mt-2">Facture générée automatiquement - Oroya</p>
+				<div class="mt-4 no-print">
+					<button onclick="window.print()" class="bg-gray-500 hover:bg-darkgreen-600 text-white px-4 py-2 rounded-lg inline-flex items-center">
+						<i data-feather="printer" class="mr-2"></i>
+						Imprimer la facture
+					</button>
+				</div>
+			</footer>
 		</div>
 
-		<!-- Footer -->
-		<footer class="px-8 py-6 bg-gray-50 text-center footer-text text-sm">
-			<p>Merci pour votre confiance. Pour toute question, contactez-nous à
-				{{ facture.emailFournisseur ?? 'contact@entreprise.com' }}</p>
-			<p class="mt-2">Facture générée automatiquement - Oroya</p>
-			<div class="mt-4 no-print">
-				<button onclick="window.print()" class="bg-gray-500 hover:bg-darkgreen-600 text-white px-4 py-2 rounded-lg inline-flex items-center">
-					<i data-feather="printer" class="mr-2"></i>
-					Imprimer la facture
-				</button>
-			</div>
-		</footer>
+		<script>
+			feather.replace();
+		</script>
 	</body>
-</html></div><script>
-feather.replace();</script></body></html>
+</html>
+
+{# templates/facture/pdf_template.html.twig #}
