@@ -43,6 +43,7 @@ class FactureController extends AbstractController
                 ->setProfilFacturX($request->request->get('profilFacturX'));
 
             // ✅ Création du client fournisseur
+        if (!$facture->getFournisseur()) {
             $fournisseur = new Client();
             $fournisseur
                 ->setNom($request->request->get('nomFournisseur'))
@@ -54,8 +55,12 @@ class FactureController extends AbstractController
                 ->setAdresse($request->request->get('adresseFournisseur'))
                 ->setVille($request->request->get('villeFournisseur'))
                 ->setCodePostal($request->request->get('codePostalFournisseur'));
+            $em->persist($fournisseur);
+            $facture->setFournisseur($fournisseur);
+        }
 
-            // ✅ Création du client acheteur
+        // ✅ Acheteur
+        if (!$facture->getAcheteur()) {
             $acheteur = new Client();
             $acheteur
                 ->setNom($request->request->get('nomAcheteur'))
@@ -66,10 +71,9 @@ class FactureController extends AbstractController
                 ->setAdresse($request->request->get('adresseAcheteur'))
                 ->setVille($request->request->get('villeAcheteur'))
                 ->setCodePostal($request->request->get('codePostalAcheteur'));
-
-            $facture
-                ->setFournisseur($fournisseur)
-                ->setAcheteur($acheteur);
+            $em->persist($acheteur);
+            $facture->setAcheteur($acheteur);
+        }
 
             // ✅ Gestion des lignes
             $lignes = $request->request->all('lignes');

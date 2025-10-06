@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\ClientRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints\Length;
 
 #[ORM\Entity(repositoryClass: ClientRepository::class)]
 class Client
@@ -46,7 +47,7 @@ class Client
     #[ORM\Column(type: "string", length: 255, nullable: true)]
     private ?string $numeroTva = null;
 
-    #[ORM\Column(type: "integer")]
+    #[ORM\Column(type: "integer", length : 255, nullable: true)]
     private ?int $NumCommande = null;
 
     // ----- GETTERS & SETTERS -----

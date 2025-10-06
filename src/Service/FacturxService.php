@@ -60,7 +60,32 @@ class FacturxService
         $root->appendChild($doc);
 
         // ---- TRANSACTION ----
+
         $transaction = $xml->createElement('rsm:SupplyChainTradeTransaction');
+
+        $lines = $facture->getLignes()->toArray();
+        // 1. Ajouter tous les line items d'abord
+        foreach ($lines as $line) {
+            $lineItem = $xml->createElement('ram:IncludedSupplyChainTradeLineItem');
+            // ...ajoute les sous-éléments ligne...
+            $transaction->appendChild($lineItem);
+        }
+
+        // 2. Puis l’entête Agreement, Delivery, Settlement (1 exemplaire chacun, max)
+        $agreement = $xml->createElement('ram:ApplicableHeaderTradeAgreement');
+        // ...sous-éléments...
+        $transaction->appendChild($agreement);
+
+        $delivery = $xml->createElement('ram:ApplicableHeaderTradeDelivery');
+        // ...sous-éléments...
+        $transaction->appendChild($delivery);
+
+        $settlement = $xml->createElement('ram:ApplicableHeaderTradeSettlement');
+        // ...sous-éléments...
+        $transaction->appendChild($settlement);
+
+// Enfin, ajouter $transaction au document principal
+
 
         // --- HeaderTradeAgreement ---
         $agreement = $xml->createElement('ram:ApplicableHeaderTradeAgreement');

@@ -36,19 +36,20 @@ class FactureType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-control']
             ])
+            // ✅ Sélecteur du fournisseur
             ->add('fournisseur', EntityType::class, [
                 'class' => Client::class,
-                'choice_label' => 'nom', // ou 'raisonSociale' selon ton entité
-                'label' => 'Fournisseur',
-                'placeholder' => 'Sélectionner un fournisseur',
-                'attr' => ['class' => 'form-control']
+                'choice_label' => 'nom',
+                'placeholder' => 'Sélectionner un fournisseur existant',
+                'required' => false,
             ])
+
+            // ✅ Sélecteur de l’acheteur
             ->add('acheteur', EntityType::class, [
                 'class' => Client::class,
-                'choice_label' => 'nom', // ou 'raisonSociale' selon ton entité
-                'label' => 'Acheteur',
-                'placeholder' => 'Sélectionner un client',
-                'attr' => ['class' => 'form-control']
+                'choice_label' => 'nom',
+                'placeholder' => 'Sélectionner un acheteur existant',
+                'required' => false,
             ])
             ->add('totalHT', MoneyType::class, [
                 'currency' => 'EUR',
