@@ -46,11 +46,25 @@ class Client
     #[ORM\Column(type: "string", length: 255, nullable: true)]
     private ?string $numeroTva = null;
 
+    #[ORM\Column(type: "integer")]
+    private ?int $NumCommande = null;
+
     // ----- GETTERS & SETTERS -----
 
     public function getId(): ?int
     {
         return $this->id;
+    }
+
+    public function getNumCommande(): ?int
+    {
+        return $this->NumCommande;
+    }
+    
+    public function setNumCommande(int $NumCommande): self
+    {
+        $this->NumCommande = $NumCommande;
+        return $this;
     }
 
     // ✅ numeroTva

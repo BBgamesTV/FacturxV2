@@ -1,5 +1,6 @@
 
 ###> symfony/framework-bundle ###
+/.env
 /.env.local
 /.env.local.php
 /.env.*.local
@@ -8,6 +9,7 @@
 /var/
 /vendor/
 /public/factures/
+/DOC
 ###< symfony/framework-bundle ###
 
 ###> phpunit/phpunit ###
