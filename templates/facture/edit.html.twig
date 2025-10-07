@@ -4,8 +4,6 @@
 	{{ facture.numeroFacture }}
 {% endblock %}
 
-
-
 {% block body %}
 	<div class="max-w-5xl mx-auto bg-white shadow rounded-lg p-6 space-y-6">
 		<h1 class="text-2xl font-bold text-gray-800">✏️ Modifier la Facture</h1>
@@ -19,20 +17,23 @@
 			<div>{{ form_row(form.dateEcheance) }}</div>
 			<div>{{ form_row(form.fournisseur) }}</div>
 			<div>{{ form_row(form.acheteur) }}</div>
-			<div>{{ form_row(form.totalHT) }}</div>
-			<div>{{ form_row(form.totalTTC) }}</div>
+			<p>
+				<strong>Total HT :</strong>
+				<span id="totalHT">{{ facture.totalHt }}</span>
+			</p>
+			<p>
+				<strong>Total TTC :</strong>
+				<span id="totalTTC">{{ facture.totalTtc }}</span>
+			</p>
 		</div>
 
 		{# ---------------- Section Lignes de facture ---------------- #}
 		<div class="p-4 border rounded-lg bg-gray-50 shadow-sm">
 			<h2 class="text-xl font-semibold text-gray-700 mb-4">🧾 Lignes de facture</h2>
 
-<div id="facture-lignes" data-prototype="{{ form_widget(form.lignes.vars.prototype)|e('html_attr') }}" class="space-y-4 bg-gray-50 p-4 rounded">
-				{# Affiche les lignes de la facture existantes #}
-
+			<div id="facture-lignes" data-prototype="{{ form_widget(form.lignes.vars.prototype)|e('html_attr') }}" class="space-y-4 bg-gray-50 p-4 rounded">
 				{% for ligneForm in form.lignes %}
 					<div class="ligne-item grid grid-cols-1 md:grid-cols-4 gap-4 p-4 border rounded-md shadow-sm bg-gray-100">
-						{# Champs de la ligne de facture #}
 						<div>{{ form_row(ligneForm.designation) }}</div>
 						<div>{{ form_row(ligneForm.reference) }}</div>
 						<div>{{ form_row(ligneForm.quantite) }}</div>
@@ -42,7 +43,6 @@
 						<div>{{ form_row(ligneForm.montantHT) }}</div>
 						<div>{{ form_row(ligneForm.montantTVA) }}</div>
 						<div>{{ form_row(ligneForm.montantTTC) }}</div>
-
 						<button type="button" class="remove-ligne bg-red-500 text-white px-3 py-1 rounded mt-2 hover:bg-red-600 col-span-1 md:col-span-4">
 							❌ Supprimer la ligne
 						</button>
@@ -68,14 +68,12 @@
 		document.addEventListener("DOMContentLoaded", function () {
 let collectionHolder = document.getElementById("facture-lignes");
 let addButton = document.getElementById("add-ligne");
-let totalHTInput = document.getElementById("{{ form.totalHT.vars.id }}");
-let totalTTCInput = document.getElementById("{{ form.totalTTC.vars.id }}");
 
 collectionHolder.dataset.index = collectionHolder.querySelectorAll(".ligne-item").length;
 
 function recalcLignes() {
-let totalHT = 0;
-let totalTTC = 0;
+let totalHT = 0,
+totalTTC = 0;
 
 collectionHolder.querySelectorAll(".ligne-item").forEach(function (ligne) {
 let qte = parseFloat(ligne.querySelector("[id$='_quantite']").value) || 0;
@@ -86,16 +84,28 @@ let ht = qte * prix;
 let tvaMontant = ht * tva / 100;
 let ttc = ht + tvaMontant;
 
-ligne.querySelector("[id$='_montantHT']").value = ht.toFixed(2);
-ligne.querySelector("[id$='_montantTVA']").value = tvaMontant.toFixed(2);
-ligne.querySelector("[id$='_montantTTC']").value = ttc.toFixed(2);
+let inputHT = ligne.querySelector("[id$='_montantHT']");
+let inputTVA = ligne.querySelector("[id$='_montantTVA']");
+let inputTTC = ligne.querySelector("[id$='_montantTTC']");
+if (inputHT) 
+inputHT.value = ht.toFixed(2);
+
+
+if (inputTVA) 
+inputTVA.value = tvaMontant.toFixed(2);
+
+
+if (inputTTC) 
+inputTTC.value = ttc.toFixed(2);
+
+
 
 totalHT += ht;
 totalTTC += ttc;
 });
 
-totalHTInput.value = totalHT.toFixed(2);
-totalTTCInput.value = totalTTC.toFixed(2);
+document.getElementById('totalHT').innerText = isNaN(totalHT) ? "0.00" : Number(totalHT).toFixed(2);
+document.getElementById('totalTTC').innerText = isNaN(totalTTC) ? "0.00" : Number(totalTTC).toFixed(2);
 }
 
 addButton.addEventListener("click", function () {
@@ -110,13 +120,12 @@ div.innerHTML = newForm;
 
 let removeButton = document.createElement("button");
 removeButton.type = "button";
-removeButton.classList.add("remove-ligne", "bg-red-500", "text-white", "px-3", "py-1", "rounded", "mt-2", "hover:bg-red-600", "col-span-1", "md:col-span-4");
+removeButton.className = "remove-ligne bg-red-500 text-white px-3 py-1 rounded mt-2 hover:bg-red-600 col-span-1 md:col-span-4";
 removeButton.innerText = "❌ Supprimer la ligne";
 removeButton.addEventListener("click", function () {
 div.remove();
 recalcLignes();
 });
-
 div.appendChild(removeButton);
 collectionHolder.appendChild(div);
 
@@ -142,4 +151,3 @@ recalcLignes();
 });
 	</script>
 {% endblock %}
-

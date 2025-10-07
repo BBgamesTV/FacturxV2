@@ -39,7 +39,7 @@ class FacturxService
         // Context
         $context = $dom->createElement('rsm:ExchangedDocumentContext');
         $guideline = $dom->createElement('ram:GuidelineSpecifiedDocumentContextParameter');
-        $guideline->appendChild($dom->createElement('ram:ID', 'urn:cen.eu:en16931:basic'));
+        $guideline->appendChild($dom->createElement('ram:ID', 'urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended'));
         $context->appendChild($guideline);
         $root->appendChild($context);
 
@@ -123,20 +123,20 @@ class FacturxService
             $taxReg->appendChild($id);
             $seller->appendChild($taxReg);
         }
-        if ($fournisseur->getSiren()) {
-            $taxReg2 = $dom->createElement('ram:SpecifiedTaxRegistration');
-            $id2 = $dom->createElement('ram:ID', $fournisseur->getSiren());
-            $id2->setAttribute('schemeID', 'FC');
-            $taxReg2->appendChild($id2);
-            $seller->appendChild($taxReg2);
-        }
-        // if ($fournisseur->getSiret()) {
-        //     $taxReg3 = $dom->createElement('ram:SpecifiedTaxRegistration');
-        //     $id3 = $dom->createElement('ram:ID', $fournisseur->getSiret());
-        //     $id3->setAttribute('schemeID', 'SIRET');
-        //     $taxReg3->appendChild($id3);
-        //     $seller->appendChild($taxReg3);
+        // if ($fournisseur->getSiren()) {
+        //     $taxReg2 = $dom->createElement('ram:SpecifiedTaxRegistration');
+        //     $id2 = $dom->createElement('ram:ID', $fournisseur->getSiren());
+        //     $id2->setAttribute('schemeID', 'FC');
+        //     $taxReg2->appendChild($id2);
+        //     $seller->appendChild($taxReg2);
         // }
+        if ($fournisseur->getSiret()) {
+            $taxReg3 = $dom->createElement('ram:SpecifiedTaxRegistration');
+            $id3 = $dom->createElement('ram:ID', $fournisseur->getSiret());
+            $id3->setAttribute('schemeID', 'SIRET');
+            $taxReg3->appendChild($id3);
+            $seller->appendChild($taxReg3);
+        }
         $agreement->appendChild($seller);
 
         // Buyer
@@ -308,7 +308,7 @@ class FacturxService
         $pdfContent = $writer->generate(
             file_get_contents($tmpPdf),
             $xmlContent,
-            ProfileHandler::PROFILE_FACTURX_BASIC,
+            ProfileHandler::PROFILE_FACTURX_EN16931,
             true,
             [],
             true

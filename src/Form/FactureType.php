@@ -3,13 +3,12 @@
 namespace App\Form;
 
 use App\Entity\Facture;
-use App\Entity\Client; // ou Fournisseur si tu as une entité séparée
+use App\Entity\Client;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CollectionType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
-use Symfony\Component\Form\Extension\Core\Type\MoneyType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
@@ -36,31 +35,19 @@ class FactureType extends AbstractType
                 'required' => false,
                 'attr' => ['class' => 'form-control']
             ])
-            // ✅ Sélecteur du fournisseur
             ->add('fournisseur', EntityType::class, [
                 'class' => Client::class,
                 'choice_label' => 'nom',
                 'placeholder' => 'Sélectionner un fournisseur existant',
                 'required' => false,
             ])
-
-            // ✅ Sélecteur de l’acheteur
             ->add('acheteur', EntityType::class, [
                 'class' => Client::class,
                 'choice_label' => 'nom',
                 'placeholder' => 'Sélectionner un acheteur existant',
                 'required' => false,
             ])
-            ->add('totalHT', MoneyType::class, [
-                'currency' => 'EUR',
-                'label' => 'Total HT',
-                'attr' => ['step' => 0.01]
-            ])
-            ->add('totalTTC', MoneyType::class, [
-                'currency' => 'EUR',
-                'label' => 'Total TTC',
-                'attr' => ['step' => 0.01]
-            ])
+            // Retire les MoneyType pour totalHT/totalTTC !
             ->add('lignes', CollectionType::class, [
                 'entry_type' => FactureLigneType::class,
                 'label' => 'Lignes de facture',
