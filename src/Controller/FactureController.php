@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Entity\Facture;
 use App\Entity\FactureLigne;
 use App\Repository\FactureRepository;
+use App\Repository\ClientRepository;
 use App\Entity\Client;
 use App\Entity\FactureAllowanceCharge;
 use App\Entity\PaymentMeans;
@@ -20,7 +21,7 @@ use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 class FactureController extends AbstractController
 {
     #[Route('/new', name: 'facture_new', methods: ['GET', 'POST'])]
-    public function create(Request $request, EntityManagerInterface $em): Response
+    public function create(Request $request, EntityManagerInterface $em, ClientRepository $clientRepository): Response
     {
         $facture = new Facture();
 
@@ -29,40 +30,49 @@ class FactureController extends AbstractController
                 ->setNumeroFacture($request->request->get('numeroFacture'))
                 ->setDateFacture(new \DateTime($request->request->get('dateFacture')))
                 ->setDevise($request->request->get('devise'))
+                ->setTypeFacture("FA") // FA: Facture, FC: Avoir, FN: Note de frais
                 ->setCommandeAcheteur($request->request->get('commandeAcheteur'))
                 ->setDateEcheance($request->request->get('dateEcheance') ? new \DateTime($request->request->get('dateEcheance')) : null)
                 ->setDateLivraison($request->request->get('dateLivraison') ? new \DateTime($request->request->get('dateLivraison')) : null)
                 ->setModePaiement($request->request->get('modePaiement'))
                 ->setReferencePaiement($request->request->get('referencePaiement'))
-                ->setCommentaire($request->request->get('commentaire'));
-
-            // --- Client fournisseur ---
-            $fournisseur = new Client();
-            $fournisseur
-                ->setNom($request->request->get('nomFournisseur'))
-                ->setSiren($request->request->get('sirenFournisseur'))
-                ->setSiret($request->request->get('siretFournisseur'))
-                ->setNumeroTva($request->request->get('tvaFournisseur'))
-                ->setCodePays($request->request->get('codePaysFournisseur'))
-                ->setEmail($request->request->get('emailFournisseur'))
-                ->setAdresse($request->request->get('adresseFournisseur'))
-                ->setVille($request->request->get('villeFournisseur'))
-                ->setCodePostal($request->request->get('codePostalFournisseur'));
-            $em->persist($fournisseur);
+                ->setCommentaire($request->request->get('commentaire'))
+                ->setNetapayer('0.0'); // Valeur initiale, sera calculée plus tard
+            // --- Clients ---
+            if ($request->request->get('fournisseur_id') && $request->request->get('fournisseur_id') !== 'new') {
+                $fournisseur = $clientRepository->find($request->request->get('fournisseur_id'));
+            } else {
+                $fournisseur = new Client();
+                $fournisseur
+                    ->setNom($request->request->get('nomFournisseur'))
+                    ->setSiren($request->request->get('sirenFournisseur'))
+                    ->setSiret($request->request->get('siretFournisseur'))
+                    ->setNumeroTva($request->request->get('tvaFournisseur'))
+                    ->setCodePays($request->request->get('codePaysFournisseur'))
+                    ->setEmail($request->request->get('emailFournisseur'))
+                    ->setAdresse($request->request->get('adresseFournisseur'))
+                    ->setVille($request->request->get('villeFournisseur'))
+                    ->setCodePostal($request->request->get('codePostalFournisseur'));
+                $em->persist($fournisseur);
+            }
             $facture->setFournisseur($fournisseur);
 
-            // --- Client acheteur ---
-            $acheteur = new Client();
-            $acheteur
-                ->setNom($request->request->get('nomAcheteur'))
-                ->setSiren($request->request->get('sirenAcheteur'))
-                ->setNumeroTva($request->request->get('tvaAcheteur'))
-                ->setCodePays($request->request->get('codePaysAcheteur'))
-                ->setEmail($request->request->get('emailAcheteur'))
-                ->setAdresse($request->request->get('adresseAcheteur'))
-                ->setVille($request->request->get('villeAcheteur'))
-                ->setCodePostal($request->request->get('codePostalAcheteur'));
-            $em->persist($acheteur);
+            // Acheteur
+            if ($request->request->get('acheteur_id') && $request->request->get('acheteur_id') !== 'new') {
+                $acheteur = $clientRepository->find($request->request->get('acheteur_id'));
+            } else {
+                $acheteur = new Client();
+                $acheteur
+                    ->setNom($request->request->get('nomAcheteur'))
+                    ->setSiren($request->request->get('sirenAcheteur'))
+                    ->setNumeroTva($request->request->get('tvaAcheteur'))
+                    ->setCodePays($request->request->get('codePaysAcheteur'))
+                    ->setEmail($request->request->get('emailAcheteur'))
+                    ->setAdresse($request->request->get('adresseAcheteur'))
+                    ->setVille($request->request->get('villeAcheteur'))
+                    ->setCodePostal($request->request->get('codePostalAcheteur'));
+                $em->persist($acheteur);
+            }
             $facture->setAcheteur($acheteur);
 
             // --- Lignes de facture ---
@@ -125,8 +135,14 @@ class FactureController extends AbstractController
             return $this->redirectToRoute('facture_index');
         }
 
+        $clients = $clientRepository->findAll();
+
         return $this->render('facture/new.html.twig', [
             'facture' => $facture,
+            'clients' => $clients,
+            'countries' => ['FR' => 'France', /* ... */],
+            'currencies' => ['EUR' => 'Euro', /* ... */],
+            'payment_means' => ['58' => 'Virement SEPA', /* ... */],
         ]);
     }
 

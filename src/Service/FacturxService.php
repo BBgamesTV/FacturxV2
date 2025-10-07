@@ -39,7 +39,7 @@ class FacturxService
         // Context
         $context = $dom->createElement('rsm:ExchangedDocumentContext');
         $guideline = $dom->createElement('ram:GuidelineSpecifiedDocumentContextParameter');
-        $guideline->appendChild($dom->createElement('ram:ID', 'urn:cen.eu:en16931:2017'));
+        $guideline->appendChild($dom->createElement('ram:ID', 'urn:cen.eu:en16931:basic'));
         $context->appendChild($guideline);
         $root->appendChild($context);
 
@@ -182,6 +182,8 @@ class FacturxService
             }
         }
 
+        $transaction->appendChild($settlement);
+
         // $terms = $dom->createElement('ram:SpecifiedTradePaymentTerms');
         // $terms->appendChild($dom->createElement('ram:Description', 'Net 30 jours'));
         // $dateEcheance = $facture->getDateEcheance();
@@ -190,9 +192,10 @@ class FacturxService
         //     $dstr = $dom->createElement('udt:DateTimeString', $dateEcheance->format('Ymd'));
         //     $dstr->setAttribute('format', '102');
         //     $due->appendChild($dstr);
-        //     $terms->appendChild($due);
+        //     $terms->appendChild($due);  
         // }
         // $settlement->appendChild($terms);
+
 
         // Taxes document (groupées par taux)
         $taxGroups = [];
@@ -250,10 +253,13 @@ class FacturxService
             if ($ac->getIsCharge()) $totalCharge += $ac->getAmount();
             else $totalAllow += $ac->getAmount();
         }
+
+        $monetary = $dom->createElement('ram:SpecifiedTradeSettlementHeaderMonetarySummation');
         $taxBasis = round($totalHT - $totalAllow + $totalCharge, 2);
         $taxTotal = round($totalTax, 2);
         $ttc = round($taxBasis + $taxTotal, 2);
 
+        $root->appendChild($transaction);
         $monetary = $dom->createElement('ram:SpecifiedTradeSettlementHeaderMonetarySummation');
         $monetary->appendChild($dom->createElement('ram:LineTotalAmount', number_format($totalHT, 2, '.', '')));
         $monetary->appendChild($dom->createElement('ram:ChargeTotalAmount', number_format($totalCharge, 2, '.', '')));
@@ -264,11 +270,8 @@ class FacturxService
         $monetary->appendChild($grand);
         $due = $dom->createElement('ram:DuePayableAmount', number_format($ttc, 2, '.', ''));
         $monetary->appendChild($due);
-
         $settlement->appendChild($monetary);
-        $transaction->appendChild($settlement);
-
-        $root->appendChild($transaction);
+        
 
         // Écriture fichier XML
         $xmlDir = $this->projectDir . '/public/factures/xml';
@@ -281,6 +284,7 @@ class FacturxService
 
         return $fileName;
     }
+    
     /**
      * Génère le PDF avec le XML Factur-X embarqué.
      */
