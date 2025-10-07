@@ -6,6 +6,8 @@ use App\Entity\Facture;
 use App\Entity\FactureLigne;
 use App\Repository\FactureRepository;
 use App\Entity\Client;
+use App\Entity\FactureAllowanceCharge;
+use App\Entity\PaymentMeans;
 use App\Service\FacturxService;
 use App\Form\FactureType;
 use Doctrine\ORM\EntityManagerInterface;
@@ -20,30 +22,21 @@ class FactureController extends AbstractController
     #[Route('/new', name: 'facture_new', methods: ['GET', 'POST'])]
     public function create(Request $request, EntityManagerInterface $em): Response
     {
-        if ($request->isMethod('POST')) {
-            $facture = new Facture();
+        $facture = new Facture();
 
-            // ✅ Hydratation des champs simples de la facture
+        if ($request->isMethod('POST')) {
             $facture
                 ->setNumeroFacture($request->request->get('numeroFacture'))
                 ->setDateFacture(new \DateTime($request->request->get('dateFacture')))
-                ->setTypeFacture($request->request->get('typeFacture'))
                 ->setDevise($request->request->get('devise'))
                 ->setCommandeAcheteur($request->request->get('commandeAcheteur'))
-                ->setNetAPayer((float) $request->request->get('netAPayer'))
                 ->setDateEcheance($request->request->get('dateEcheance') ? new \DateTime($request->request->get('dateEcheance')) : null)
                 ->setDateLivraison($request->request->get('dateLivraison') ? new \DateTime($request->request->get('dateLivraison')) : null)
                 ->setModePaiement($request->request->get('modePaiement'))
                 ->setReferencePaiement($request->request->get('referencePaiement'))
-                ->setTvaDetails($request->request->get('tvaDetails') ? json_decode($request->request->get('tvaDetails'), true) : null)
-                ->setRemisePied((float) $request->request->get('remisePied'))
-                ->setChargesPied((float) $request->request->get('chargesPied'))
-                ->setReferenceContrat($request->request->get('referenceContrat'))
-                ->setReferenceBonLivraison($request->request->get('referenceBonLivraison'))
-                ->setProfilFacturX($request->request->get('profilFacturX'));
+                ->setCommentaire($request->request->get('commentaire'));
 
-            // ✅ Création du client fournisseur
-        if (!$facture->getFournisseur()) {
+            // --- Client fournisseur ---
             $fournisseur = new Client();
             $fournisseur
                 ->setNom($request->request->get('nomFournisseur'))
@@ -57,10 +50,8 @@ class FactureController extends AbstractController
                 ->setCodePostal($request->request->get('codePostalFournisseur'));
             $em->persist($fournisseur);
             $facture->setFournisseur($fournisseur);
-        }
 
-        // ✅ Acheteur
-        if (!$facture->getAcheteur()) {
+            // --- Client acheteur ---
             $acheteur = new Client();
             $acheteur
                 ->setNom($request->request->get('nomAcheteur'))
@@ -73,45 +64,70 @@ class FactureController extends AbstractController
                 ->setCodePostal($request->request->get('codePostalAcheteur'));
             $em->persist($acheteur);
             $facture->setAcheteur($acheteur);
-        }
 
-            // ✅ Gestion des lignes
+            // --- Lignes de facture ---
             $lignes = $request->request->all('lignes');
-            foreach ($lignes as $index => $ligneData) {
+            foreach ($lignes as $ligneData) {
                 $ligne = new FactureLigne();
                 $ligne
                     ->setDesignation($ligneData['designation'])
-                    ->setReference($ligneData['reference'] ?? null)
                     ->setQuantite((float) $ligneData['quantite'])
                     ->setUnite($ligneData['unite'] ?? null)
-                    ->setPrixUnitaireHT((float) $ligneData['prixUnitaireHT'])
-                    ->setTauxTVA((float) $ligneData['tauxTVA'])
-                    ->setNumeroLigne($index + 1); // ✅ Respect BR-21 (identifiant unique par ligne)
+                    ->setPrixUnitaireHt((float) $ligneData['prixUnitaireHT'])
+                    ->setTauxTva((float) $ligneData['tauxTVA']);
 
-                // Calculs automatiques
-                $montantHT = $ligne->getQuantite() * $ligne->getPrixUnitaireHT();
-                $montantTVA = $montantHT * ($ligne->getTauxTVA() / 100);
-                $montantTTC = $montantHT + $montantTVA;
+                $montantHT = $ligne->getQuantite() * $ligne->getPrixUnitaireHt();
+                $montantTVA = $montantHT * ($ligne->getTauxTva() / 100);
+                $ligne->setMontantHt($montantHT)
+                    ->setMontantTva($montantTVA)
+                    ->setMontantTtc($montantHT + $montantTVA);
 
-                $ligne
-                    ->setMontantHT($montantHT)
-                    ->setMontantTVA($montantTVA)
-                    ->setMontantTTC($montantTTC);
-
+                $ligne->setFacture($facture); // Association bidirectionnelle
                 $facture->addLigne($ligne);
+                $em->persist($ligne);
+
+                // Ajouter la taxe dans le tableau taxes
+                // Ici méthode à adapter : $facture->addTaxe(...) personnalisée à ton entité (à créer si besoin)
             }
 
-            $em->persist($fournisseur);
-            $em->persist($acheteur);
+            // --- Allowances / Charges ---
+            $allowances = $request->request->all('allowances');
+            foreach ($allowances as $allowData) {
+                $allow = new FactureAllowanceCharge();
+                $allow
+                    ->setAmount((float) $allowData['amount'])
+                    ->setTaxRate(isset($allowData['taxRate']) ? (float) $allowData['taxRate'] : null)
+                    ->setIsCharge((bool) ($allowData['isCharge'] ?? false))
+                    ->setReason($allowData['reason'] ?? null);
+
+                $allow->setFacture($facture); // Association
+                $facture->addAllowanceCharge($allow);
+                $em->persist($allow);
+            }
+
+            // --- Payment Means ---
+            $payments = $request->request->all('paymentMeans');
+            foreach ($payments as $payData) {
+                $payment = new PaymentMeans();
+                $payment
+                    ->setCode($payData['code'])
+                    ->setInformation($payData['information'] ?? null);
+
+                $payment->setFacture($facture); // Association
+                $facture->addPaymentMeans($payment);
+                $em->persist($payment);
+            }
+
             $em->persist($facture);
             $em->flush();
 
             $this->addFlash('success', 'Facture créée avec succès ✅');
-
             return $this->redirectToRoute('facture_index');
         }
 
-        return $this->render('facture/new.html.twig');
+        return $this->render('facture/new.html.twig', [
+            'facture' => $facture,
+        ]);
     }
 
     #[Route('/', name: 'facture_index', methods: ['GET'])]

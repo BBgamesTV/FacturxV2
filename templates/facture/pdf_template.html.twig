@@ -1,4 +1,4 @@
-{# templates/facture/pdf_templates.html.twig #}
+{# templates/facture/pdf_template.html.twig #}
 <!DOCTYPE html>
 <html lang="fr">
 	<head>
@@ -116,16 +116,16 @@
 								{% for ligne in facture.lignes %}
 									<tr>
 										<td class="py-3 px-4 text-sm">{{ ligne.designation }}</td>
-										<td class="py-3 px-4 text-sm">{{ ligne.reference }}</td>
+										<td class="py-3 px-4 text-sm">{{ ligne.reference ?? '-' }}</td>
 										<td class="py-3 px-4 text-right text-sm">{{ ligne.quantite }}</td>
-										<td class="py-3 px-4 text-sm">{{ ligne.unite }}</td>
-										<td class="py-3 px-4 text-right text-sm">{{ ligne.prixUnitaireHT|number_format(2, ',', ' ') }}
+										<td class="py-3 px-4 text-sm">{{ ligne.unite ?? '-' }}</td>
+										<td class="py-3 px-4 text-right text-sm">{{ ligne.prixUnitaireHt|number_format(2, ',', ' ') }}
 											€</td>
-										<td class="py-3 px-4 text-right text-sm">{{ ligne.montantHT|number_format(2, ',', ' ') }}
+										<td class="py-3 px-4 text-right text-sm">{{ ligne.montantHt|number_format(2, ',', ' ') }}
 											€</td>
-										<td class="py-3 px-4 text-right text-sm">{{ ligne.montantTVA|number_format(2, ',', ' ') }}
+										<td class="py-3 px-4 text-right text-sm">{{ ligne.montantTva|number_format(2, ',', ' ') }}
 											€</td>
-										<td class="py-3 px-4 text-right text-sm">{{ ligne.montantTTC|number_format(2, ',', ' ') }}
+										<td class="py-3 px-4 text-right text-sm">{{ ligne.montantTtc|number_format(2, ',', ' ') }}
 											€</td>
 									</tr>
 								{% endfor %}
@@ -154,21 +154,29 @@
 						</div>
 					</div>
 					<div>
+						{% set totalHT = 0 %}
+						{% set totalTVA = 0 %}
+						{% set totalTTC = 0 %}
+						{% for ligne in facture.lignes %}
+							{% set totalHT = totalHT + ligne.montantHt %}
+							{% set totalTVA = totalTVA + ligne.montantTva %}
+							{% set totalTTC = totalTTC + ligne.montantTtc %}
+						{% endfor %}
 						<table class="w-full">
 							<tbody>
 								<tr class="total-row">
 									<th class="py-2 px-4 text-left font-medium">Total HT</th>
-									<td class="py-2 px-4 text-right">{{ facture.totalHT|number_format(2, ',', ' ') }}
+									<td class="py-2 px-4 text-right">{{ totalHT|number_format(2, ',', ' ') }}
 										€</td>
 								</tr>
 								<tr class="total-row">
 									<th class="py-2 px-4 text-left font-medium">Total TVA</th>
-									<td class="py-2 px-4 text-right">{{ facture.totalTVA|number_format(2, ',', ' ') }}
+									<td class="py-2 px-4 text-right">{{ totalTVA|number_format(2, ',', ' ') }}
 										€</td>
 								</tr>
 								<tr class="bg-gray-100">
 									<th class="py-3 px-4 text-left font-bold">Total TTC</th>
-									<td class="py-3 px-4 text-right font-bold">{{ facture.totalTTC|number_format(2, ',', ' ') }}
+									<td class="py-3 px-4 text-right font-bold">{{ totalTTC|number_format(2, ',', ' ') }}
 										€</td>
 								</tr>
 							</tbody>
@@ -197,4 +205,3 @@
 	</body>
 </html>
 
-{# templates/facture/pdf_template.html.twig #}

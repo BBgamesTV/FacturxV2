@@ -2,9 +2,9 @@
 
 namespace App\Entity;
 
+use Doctrine\ORM\Mapping as ORM;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
-use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 class Facture
@@ -12,272 +12,228 @@ class Facture
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column(type: "integer")]
-    private ?int $id = null;
+    private int $id;
 
-    #[ORM\Column(type: "string", length: 255, nullable: true)]
-    private ?string $commandeAcheteur = null;
-
-    #[ORM\ManyToOne(cascade: ["persist"])]
+    #[ORM\ManyToOne(targetEntity: Client::class, inversedBy: "facturesFournisseur")]
+    #[ORM\JoinColumn(name: "fournisseur_id", referencedColumnName: "id")]
     private ?Client $fournisseur = null;
 
-    #[ORM\ManyToOne(cascade: ["persist"])]
+    #[ORM\ManyToOne(targetEntity: Client::class, inversedBy: "facturesAcheteur")]
+    #[ORM\JoinColumn(name: "acheteur_id", referencedColumnName: "id")]
     private ?Client $acheteur = null;
 
     #[ORM\Column(type: "string", length: 50)]
-    private string $numeroFacture;
+    private string $numero_facture;
 
     #[ORM\Column(type: "date")]
-    private \DateTimeInterface $dateFacture;
+    private \DateTimeInterface $date_facture;
 
     #[ORM\Column(type: "string", length: 10)]
-    private string $typeFacture;
+    private string $type_facture;
 
     #[ORM\Column(type: "string", length: 3)]
     private string $devise;
 
     #[ORM\Column(type: "decimal", precision: 10, scale: 2)]
-    private float $netAPayer;
+    private float $net_apayer;
 
     #[ORM\Column(type: "date", nullable: true)]
-    private ?\DateTimeInterface $dateEcheance = null;
+    private ?\DateTimeInterface $date_echeance = null;
 
     #[ORM\Column(type: "date", nullable: true)]
-    private ?\DateTimeInterface $dateLivraison = null;
+    private ?\DateTimeInterface $date_livraison = null;
 
     #[ORM\Column(type: "string", length: 10, nullable: true)]
-    private ?string $modePaiement = null;
+    private ?string $mode_paiement = null;
 
     #[ORM\Column(type: "string", length: 100, nullable: true)]
-    private ?string $referencePaiement = null;
+    private ?string $reference_paiement = null;
 
     #[ORM\Column(type: "json", nullable: true)]
-    private ?array $tvaDetails = null;
-
-    #[ORM\Column(type: "decimal", precision: 10, scale: 2, nullable: true)]
-    private ?float $remisePied = 0;
-
-    #[ORM\Column(type: "decimal", precision: 10, scale: 2, nullable: true)]
-    private ?float $chargesPied = 0;
+    private ?array $taxes = null;
 
     #[ORM\Column(type: "string", length: 255, nullable: true)]
-    private ?string $referenceContrat = null;
+    private ?string $commentaire = null;
 
-    #[ORM\Column(type: "string", length: 255, nullable: true)]
-    private ?string $referenceBonLivraison = null;
+    #[ORM\Column(type: "float")]
+    private float $charges = 0.0;
 
-    #[ORM\Column(type: "string", length: 20)]
-    private string $profilFacturX;
+    #[ORM\Column(type: "string", length: 50, nullable: true)]
+    private ?string $commande_acheteur = null;
 
-    #[ORM\OneToMany(mappedBy: "facture", targetEntity: FactureLigne::class, cascade: ["persist", "remove"], orphanRemoval: true)]
+    #[ORM\OneToMany(mappedBy: "facture", targetEntity: FactureAllowanceCharge::class)]
+    private Collection $allowanceCharges;
+
+    #[ORM\OneToMany(mappedBy: "facture", targetEntity: FactureLigne::class)]
     private Collection $lignes;
+
+    #[ORM\OneToMany(mappedBy: "facture", targetEntity: PaymentMeans::class)]
+    private Collection $paymentMeans;
 
     public function __construct()
     {
+        $this->allowanceCharges = new ArrayCollection();
         $this->lignes = new ArrayCollection();
+        $this->paymentMeans = new ArrayCollection();
     }
 
-    // ---------------- GETTERS & SETTERS ----------------
-
-    public function getId(): ?int
+    public function getId(): int
     {
         return $this->id;
     }
-
-    public function getCommandeAcheteur(): ?string
-    {
-        return $this->commandeAcheteur;
-    }
-
-    public function setCommandeAcheteur(?string $commandeAcheteur): self
-    {
-        $this->commandeAcheteur = $commandeAcheteur;
-        return $this;
-    }
-
     public function getFournisseur(): ?Client
     {
         return $this->fournisseur;
     }
-
     public function setFournisseur(?Client $fournisseur): self
     {
         $this->fournisseur = $fournisseur;
         return $this;
     }
-
     public function getAcheteur(): ?Client
     {
         return $this->acheteur;
     }
-
     public function setAcheteur(?Client $acheteur): self
     {
         $this->acheteur = $acheteur;
         return $this;
     }
-
     public function getNumeroFacture(): string
     {
-        return $this->numeroFacture;
+        return $this->numero_facture;
     }
-
-    public function setNumeroFacture(string $numeroFacture): self
+    public function setNumeroFacture(string $numero_facture): self
     {
-        $this->numeroFacture = $numeroFacture;
+        $this->numero_facture = $numero_facture;
         return $this;
     }
-
     public function getDateFacture(): \DateTimeInterface
     {
-        return $this->dateFacture;
+        return $this->date_facture;
     }
-
-    public function setDateFacture(\DateTimeInterface $dateFacture): self
+    public function setDateFacture(\DateTimeInterface $date_facture): self
     {
-        $this->dateFacture = $dateFacture;
+        $this->date_facture = $date_facture;
         return $this;
     }
-
     public function getTypeFacture(): string
     {
-        return $this->typeFacture;
+        return $this->type_facture;
     }
-
-    public function setTypeFacture(string $typeFacture): self
+    public function setTypeFacture(string $type_facture): self
     {
-        $this->typeFacture = $typeFacture;
+        $this->type_facture = $type_facture;
         return $this;
     }
-
     public function getDevise(): string
     {
         return $this->devise;
     }
-
     public function setDevise(string $devise): self
     {
         $this->devise = $devise;
         return $this;
     }
-
-    public function getNetAPayer(): float
+    public function getNetApayer(): float
     {
-        return $this->netAPayer;
+        return $this->net_apayer;
     }
-
-    public function setNetAPayer(float $netAPayer): self
+    public function setNetApayer(float $net_apayer): self
     {
-        $this->netAPayer = $netAPayer;
+        $this->net_apayer = $net_apayer;
         return $this;
     }
-
     public function getDateEcheance(): ?\DateTimeInterface
     {
-        return $this->dateEcheance;
+        return $this->date_echeance;
     }
-
-    public function setDateEcheance(?\DateTimeInterface $dateEcheance): self
+    public function setDateEcheance(?\DateTimeInterface $date_echeance): self
     {
-        $this->dateEcheance = $dateEcheance;
+        $this->date_echeance = $date_echeance;
         return $this;
     }
-
     public function getDateLivraison(): ?\DateTimeInterface
     {
-        return $this->dateLivraison;
+        return $this->date_livraison;
     }
-
-    public function setDateLivraison(?\DateTimeInterface $dateLivraison): self
+    public function setDateLivraison(?\DateTimeInterface $date_livraison): self
     {
-        $this->dateLivraison = $dateLivraison;
+        $this->date_livraison = $date_livraison;
         return $this;
     }
-
     public function getModePaiement(): ?string
     {
-        return $this->modePaiement;
+        return $this->mode_paiement;
     }
-
-    public function setModePaiement(?string $modePaiement): self
+    public function setModePaiement(?string $mode_paiement): self
     {
-        $this->modePaiement = $modePaiement;
+        $this->mode_paiement = $mode_paiement;
         return $this;
     }
-
     public function getReferencePaiement(): ?string
     {
-        return $this->referencePaiement;
+        return $this->reference_paiement;
     }
-
-    public function setReferencePaiement(?string $referencePaiement): self
+    public function setReferencePaiement(?string $reference_paiement): self
     {
-        $this->referencePaiement = $referencePaiement;
+        $this->reference_paiement = $reference_paiement;
+        return $this;
+    }
+    public function getTaxes(): ?array
+    {
+        return $this->taxes;
+    }
+    public function setTaxes(?array $taxes): self
+    {
+        $this->taxes = $taxes;
+        return $this;
+    }
+    public function getCommentaire(): ?string
+    {
+        return $this->commentaire;
+    }
+    public function setCommentaire(?string $commentaire): self
+    {
+        $this->commentaire = $commentaire;
+        return $this;
+    }
+    public function getCharges(): float
+    {
+        return $this->charges;
+    }
+    public function setCharges(float $charges): self
+    {
+        $this->charges = $charges;
+        return $this;
+    }
+    public function getCommandeAcheteur(): ?string
+    {
+        return $this->commande_acheteur;
+    }
+    public function setCommandeAcheteur(?string $commande_acheteur): self
+    {
+        $this->commande_acheteur = $commande_acheteur;
         return $this;
     }
 
-    public function getTvaDetails(): ?array
+    public function getAllowanceCharges(): Collection
     {
-        return $this->tvaDetails;
+        return $this->allowanceCharges;
     }
-
-    public function setTvaDetails(?array $tvaDetails): self
+    public function addAllowanceCharge(FactureAllowanceCharge $ac): self
     {
-        $this->tvaDetails = $tvaDetails;
+        if (!$this->allowanceCharges->contains($ac)) {
+            $this->allowanceCharges[] = $ac;
+            $ac->setFacture($this);
+        }
         return $this;
     }
-
-    public function getRemisePied(): ?float
+    public function removeAllowanceCharge(FactureAllowanceCharge $ac): self
     {
-        return $this->remisePied;
-    }
-
-    public function setRemisePied(?float $remisePied): self
-    {
-        $this->remisePied = $remisePied;
-        return $this;
-    }
-
-    public function getChargesPied(): ?float
-    {
-        return $this->chargesPied;
-    }
-
-    public function setChargesPied(?float $chargesPied): self
-    {
-        $this->chargesPied = $chargesPied;
-        return $this;
-    }
-
-    public function getReferenceContrat(): ?string
-    {
-        return $this->referenceContrat;
-    }
-
-    public function setReferenceContrat(?string $referenceContrat): self
-    {
-        $this->referenceContrat = $referenceContrat;
-        return $this;
-    }
-
-    public function getReferenceBonLivraison(): ?string
-    {
-        return $this->referenceBonLivraison;
-    }
-
-    public function setReferenceBonLivraison(?string $referenceBonLivraison): self
-    {
-        $this->referenceBonLivraison = $referenceBonLivraison;
-        return $this;
-    }
-
-    public function getProfilFacturX(): string
-    {
-        return $this->profilFacturX;
-    }
-
-    public function setProfilFacturX(string $profilFacturX): self
-    {
-        $this->profilFacturX = $profilFacturX;
+        if ($this->allowanceCharges->removeElement($ac)) {
+            if ($ac->getFacture() === $this) $ac->setFacture(null);
+        }
         return $this;
     }
 
@@ -285,7 +241,6 @@ class Facture
     {
         return $this->lignes;
     }
-
     public function addLigne(FactureLigne $ligne): self
     {
         if (!$this->lignes->contains($ligne)) {
@@ -294,31 +249,78 @@ class Facture
         }
         return $this;
     }
-
     public function removeLigne(FactureLigne $ligne): self
     {
         if ($this->lignes->removeElement($ligne)) {
-            if ($ligne->getFacture() === $this) {
-                $ligne->setFacture(null);
-            }
+            if ($ligne->getFacture() === $this) $ligne->setFacture(null);
         }
         return $this;
     }
 
-    // ---------------- CALCUL DES TOTALS ----------------
-
-    public function getTotalHT(): float
+    public function getTotalHt(): float
     {
-        return array_sum(array_map(fn($l) => $l->getMontantHT(), $this->lignes->toArray()));
+        $total = 0.0;
+        foreach ($this->getLignes() as $ligne) {
+            $total += $ligne->getMontantHt();
+        }
+        return $total;
     }
 
-    public function getTotalTVA(): float
+    public function getTotalTva(): float
     {
-        return array_sum(array_map(fn($l) => $l->getMontantTVA(), $this->lignes->toArray()));
+        $total = 0.0;
+        foreach ($this->getLignes() as $ligne) {
+            $total += $ligne->getMontantTva();
+        }
+        return $total;
     }
 
-    public function getTotalTTC(): float
+    public function getTotalTtc(): float
     {
-        return array_sum(array_map(fn($l) => $l->getMontantTTC(), $this->lignes->toArray()));
+        $total = 0.0;
+        foreach ($this->getLignes() as $ligne) {
+            $total += $ligne->getMontantTtc();
+        }
+        return $total;
+    }
+
+    public function getPaymentMeans(): Collection
+    {
+        return $this->paymentMeans;
+    }
+    public function addPaymentMeans(PaymentMeans $means): self
+    {
+        if (!$this->paymentMeans->contains($means)) {
+            $this->paymentMeans[] = $means;
+            $means->setFacture($this);
+        }
+        return $this;
+    }
+
+    public function getTaxBasisTotal(): float
+    {
+        // Total HT des lignes
+        $base = $this->getTotalHt();
+
+        // Si tu as des allowances/charges (par exemple remises négatives, charges positives)
+        if (method_exists($this, 'getAllowanceCharges')) {
+            foreach ($this->getAllowanceCharges() as $item) {
+                $amount = $item->getAmount();
+                if ($item->getIsCharge()) {
+                    $base += $amount; // charge = augmentation de la base
+                } else {
+                    $base -= $amount; // remise = diminution de la base
+                }
+            }
+        }
+
+        return max($base, 0);
+    }
+    public function removePaymentMeans(PaymentMeans $means): self
+    {
+        if ($this->paymentMeans->removeElement($means)) {
+            if ($means->getFacture() === $this) $means->setFacture(null);
+        }
+        return $this;
     }
 }

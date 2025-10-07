@@ -29,15 +29,21 @@
 					</thead>
 					<tbody class="divide-y divide-gray-200">
 						{% for facture in factures %}
+							{% set totalHT = 0 %}
+							{% set totalTTC = 0 %}
+							{% for ligne in facture.lignes %}
+								{% set totalHT = totalHT + ligne.montantHt %}
+								{% set totalTTC = totalTTC + ligne.montantTtc %}
+							{% endfor %}
 							<tr class="hover:bg-gray-50">
 								<td class="px-4 py-2">{{ facture.id }}</td>
 								<td class="px-4 py-2 font-medium">{{ facture.numeroFacture }}</td>
 								<td class="px-4 py-2">{{ facture.dateFacture|date('d/m/Y') }}</td>
-								<td class="px-4 py-2">{{ facture.fournisseur.nom ?? '-' }}</td>
-								<td class="px-4 py-2">{{ facture.acheteur.nom ?? '-' }}</td>
-								<td class="px-4 py-2">{{ facture.totalHT|number_format(2, ',', ' ') }}
+								<td class="px-4 py-2">{{ facture.fournisseur ? facture.fournisseur.nom : '-' }}</td>
+								<td class="px-4 py-2">{{ facture.acheteur ? facture.acheteur.nom : '-' }}</td>
+								<td class="px-4 py-2">{{ totalHT|number_format(2, ',', ' ') }}
 									{{ facture.devise }}</td>
-								<td class="px-4 py-2">{{ facture.totalTTC|number_format(2, ',', ' ') }}
+								<td class="px-4 py-2">{{ totalTTC|number_format(2, ',', ' ') }}
 									{{ facture.devise }}</td>
 								<td class="px-4 py-2">{{ facture.dateEcheance ? facture.dateEcheance|date('d/m/Y') : '-' }}</td>
 								<td class="px-4 py-2 text-right flex justify-end space-x-1 items-center">
@@ -57,15 +63,16 @@
 									{% else %}
 										<ul class="list-disc pl-5 text-gray-700">
 											{% for ligne in facture.lignes %}
-												<li>{{ ligne.designation }}
+												<li>
+													{{ ligne.designation }}
 													–
 													{{ ligne.quantite }}
 													×
-													{{ ligne.prixUnitaireHT|number_format(2, ',', ' ') }}
+													{{ ligne.prixUnitaireHt|number_format(2, ',', ' ') }}
 													{{ facture.devise }}
 													(TVA
-													{{ ligne.tauxTVA }}%) =
-													{{ ligne.montantTTC|number_format(2, ',', ' ') }}
+													{{ ligne.tauxTva }}%) =
+													{{ ligne.montantTtc|number_format(2, ',', ' ') }}
 													{{ facture.devise }}
 												</li>
 											{% endfor %}
