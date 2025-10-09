@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fr">
+	<head>
+		<meta charset="UTF-8">
+		<title>Facture
+			{{ facture.numeroFacture }}</title>
+		<style>
+			body {
+				font-family: DejaVu Sans, sans-serif;
+				font-size: 12px;
+				color: #222;
+				margin: 0;
+				padding: 0;
+			}
+			.container {
+				padding: 30px 40px;
+			}
+			h1 {
+				text-align: right;
+				color: #333;
+			}
+			.header,
+			.footer {
+				width: 100%;
+				margin-bottom: 20px;
+			}
+			.header td {
+				vertical-align: top;
+				width: 50%;
+			}
+			.info-section {
+				margin-bottom: 25px;
+			}
+			.info-section h2 {
+				background: #f0f0f0;
+				padding: 8px;
+				font-size: 14px;
+				text-transform: uppercase;
+			}
+			table {
+				width: 100%;
+				border-collapse: collapse;
+				margin-top: 8px;
+			}
+			th,
+			td {
+				border: 1px solid #ccc;
+				padding: 6px 8px;
+				text-align: left;
+			}
+			th {
+				background: #f8f8f8;
+			}
+			.right {
+				text-align: right;
+			}
+			.center {
+				text-align: center;
+			}
+			.totals {
+				margin-top: 15px;
+				width: 50%;
+				float: right;
+			}
+			.totals td {
+				border: none;
+				padding: 4px 6px;
+			}
+			.totals tr:last-child td {
+				border-top: 2px solid #000;
+				font-weight: bold;
+			}
+			.notes {
+				margin-top: 50px;
+				font-size: 11px;
+				color: #555;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+
+			<h1>Facture
+				{{ facture.numeroFacture }}</h1>
+
+			<table class="header">
+				<tr>
+					<td>
+						<h3>Fournisseur</h3>
+						<strong>{{ facture.fournisseur.nom }}</strong><br>
+						{{ facture.fournisseur.adresse }}<br>
+						{{ facture.fournisseur.codePostal }}
+						{{ facture.fournisseur.ville }}<br>
+						{{ facture.fournisseur.codePays }}<br>
+						{% if facture.fournisseur.numeroTva %}
+							N° TVA :
+							{{ facture.fournisseur.numeroTva }}<br>
+						{% endif %}
+						{% if facture.fournisseur.siret %}
+							SIRET :
+							{{ facture.fournisseur.siret }}<br>
+						{% endif %}
+					</td>
+					<td>
+						<h3>Acheteur</h3>
+						<strong>{{ facture.acheteur.nom }}</strong><br>
+						{{ facture.acheteur.adresse }}<br>
+						{{ facture.acheteur.codePostal }}
+						{{ facture.acheteur.ville }}<br>
+						{{ facture.acheteur.codePays }}<br>
+					</td>
+				</tr>
+			</table>
+
+			<div class="info-section">
+				<h2>Informations générales</h2>
+				<table>
+					<tr>
+						<th>Date de facture</th>
+						<td>{{ facture.dateFacture ? facture.dateFacture|date('d/m/Y') : '' }}</td>
+					</tr>
+					<tr>
+						<th>Date d’échéance</th>
+						<td>{{ facture.dateEcheance ? facture.dateEcheance|date('d/m/Y') : '—' }}</td>
+					</tr>
+					<tr>
+						<th>Date de livraison</th>
+						<td>{{ facture.dateLivraison ? facture.dateLivraison|date('d/m/Y') : '—' }}</td>
+					</tr>
+					<tr>
+						<th>Devise</th>
+						<td>{{ facture.devise ?: 'EUR' }}</td>
+					</tr>
+				</table>
+			</div>
+
+			<div class="info-section">
+				<h2>Détails des lignes</h2>
+				<table>
+					<thead>
+						<tr>
+							<th class="center">#</th>
+							<th>Désignation</th>
+							<th class="right">Quantité</th>
+							<th class="right">Prix U. HT</th>
+							<th class="right">TVA (%)</th>
+							<th class="right">Montant HT</th>
+						</tr>
+					</thead>
+					<tbody>
+						{% for ligne in facture.lignes %}
+							<tr>
+								<td class="center">{{ loop.index }}</td>
+								<td>{{ ligne.designation }}</td>
+								<td class="right">{{ ligne.quantite|number_format(2, ',', ' ') }}</td>
+								<td class="right">{{ ligne.prixUnitaireHt|number_format(2, ',', ' ') }}</td>
+								<td class="right">{{ ligne.tauxTva|number_format(2, ',', ' ') }}</td>
+								<td class="right">{{ ligne.montantHt|number_format(2, ',', ' ') }}</td>
+							</tr>
+						{% else %}
+							<tr>
+								<td colspan="6" class="center">Aucune ligne</td>
+							</tr>
+						{% endfor %}
+					</tbody>
+				</table>
+			</div>
+
+			{% if facture.allowanceCharges|length > 0 %}
+				<div class="info-section">
+					<h2>Remises / Suppléments</h2>
+					<table>
+						<thead>
+							<tr>
+								<th>Description</th>
+								<th class="right">Type</th>
+								<th class="right">Montant</th>
+								<th class="right">Taux TVA (%)</th>
+							</tr>
+						</thead>
+						<tbody>
+							{% for ac in facture.allowanceCharges %}
+								<tr>
+									<td>{{ ac.reason }}</td>
+									<td class="center">{{ ac.isCharge ? 'Supplément' : 'Remise' }}</td>
+									<td class="right">{{ ac.amount|number_format(2, ',', ' ') }}</td>
+									<td class="right">{{ ac.taxRate|number_format(2, ',', ' ') }}</td>
+								</tr>
+							{% endfor %}
+						</tbody>
+					</table>
+				</div>
+			{% endif %}
+
+			<table class="totals">
+				<tr>
+					<td>Total HT</td>
+					<td class="right">{{ facture.totalHt|default(0)|number_format(2, ',', ' ') }}
+						€</td>
+				</tr>
+				<tr>
+					<td>Remises</td>
+					<td class="right">-
+						{{ facture.totalRemise|default(0)|number_format(2, ',', ' ') }}
+						€</td>
+				</tr>
+				<tr>
+					<td>Suppléments</td>
+					<td class="right">{{ facture.totalCharge|default(0)|number_format(2, ',', ' ') }}
+						€</td>
+				</tr>
+				<tr>
+					<td>TVA</td>
+					<td class="right">{{ facture.totalTva|default(0)|number_format(2, ',', ' ') }}
+						€</td>
+				</tr>
+				<tr>
+					<td>
+						<strong>Total TTC</strong>
+					</td>
+					<td class="right">
+						<strong>{{ facture.totalTtc|default(0)|number_format(2, ',', ' ') }}
+							€</strong>
+					</td>
+				</tr>
+			</table>
+
+			<div style="clear: both;"></div>
+
+			<div class="info-section">
+				<h2>Informations de paiement</h2>
+				<table>
+					<tr>
+						<th>Moyen de paiement</th>
+						<td>
+							{% if facture.paymentMeans|length > 0 %}
+								{% for pm in facture.paymentMeans %}
+									{{ pm.information ?: 'Paiement par virement bancaire' }}
+									{% if not loop.last %}<br>
+									{% endif %}
+								{% endfor %}
+							{% else %}
+								Paiement par virement bancaire
+							{% endif %}
+						</td>
+					</tr>
+					<tr>
+						<th>IBAN</th>
+						<td>FR7630006000011234567890189</td>
+					</tr>
+					<tr>
+						<th>BIC</th>
+						<td>AGRIFRPPXXX</td>
+					</tr>
+				</table>
+			</div>
+
+			{% if facture.commentaire %}
+				<div class="notes">
+					<strong>Commentaire :</strong><br>
+					{{ facture.commentaire }}
+				</div>
+			{% endif %}
+
+			<div class="notes">
+				<p>Facture générée électroniquement via Factur-X (profil EN16931).</p>
+				<p>Date de génération :
+					{{ "now"|date("d/m/Y H:i") }}</p>
+			</div>
+
+		</div>
+	</body>
+</html>
+

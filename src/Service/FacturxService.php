@@ -4,6 +4,7 @@ namespace App\Service;
 
 use App\Entity\Facture;
 use App\Entity\FactureLigne;
+use Dompdf\Options;
 use Atgp\FacturX\Writer;
 use Atgp\FacturX\Utils\ProfileHandler;
 use Dompdf\Dompdf;
@@ -27,6 +28,7 @@ class FacturxService
     {
         $dom = new \DOMDocument('1.0', 'UTF-8');
         $dom->formatOutput = true;
+        
 
         // Root + namespaces
         $root = $dom->createElement('rsm:CrossIndustryInvoice');
@@ -39,7 +41,7 @@ class FacturxService
         // Context
         $context = $dom->createElement('rsm:ExchangedDocumentContext');
         $guideline = $dom->createElement('ram:GuidelineSpecifiedDocumentContextParameter');
-        $guideline->appendChild($dom->createElement('ram:ID', 'urn:cen.eu:en16931:2017#conformant#urn:factur-x.eu:1p0:extended'));
+        $guideline->appendChild($dom->createElement('ram:ID', 'urn:cen.eu:en16931:2017'));
         $context->appendChild($guideline);
         $root->appendChild($context);
 
@@ -62,7 +64,9 @@ class FacturxService
         $root->appendChild($document);
 
         // SupplyChainTradeTransaction
-        $transaction = $dom->createElement('rsm:SupplyChainTradeTransaction');
+
+        $tradeTransaction = $dom->createElement('rsm:SupplyChainTradeTransaction');
+        $root->appendChild($tradeTransaction);
 
         // === (1) Toutes les lignes d'abord ===
         foreach ($facture->getLignes() as $idx => $ligne) {
@@ -89,6 +93,7 @@ class FacturxService
 
             $settlementLine = $dom->createElement('ram:SpecifiedLineTradeSettlement');
             $tax = $dom->createElement('ram:ApplicableTradeTax');
+            $tax->appendChild($dom->createElement('ram:CalculatedAmount', $ligne->getMontantHt() * $ligne->getTauxTva()/100));
             $tax->appendChild($dom->createElement('ram:TypeCode', 'VAT'));
             $tax->appendChild($dom->createElement('ram:CategoryCode', 'S'));
             $tax->appendChild($dom->createElement('ram:RateApplicablePercent', number_format($ligne->getTauxTva(), 2, '.', '')));
@@ -100,7 +105,7 @@ class FacturxService
 
             $line->appendChild($settlementLine);
 
-            $transaction->appendChild($line);
+            $tradeTransaction->appendChild($line);
         }
 
         // === (2) Ensuite l'entête parties/accord ===
@@ -150,7 +155,8 @@ class FacturxService
         $buyerAddr->appendChild($dom->createElement('ram:CountryID', $acheteur->getCodePays() ?: 'FR'));
         $buyer->appendChild($buyerAddr);
         $agreement->appendChild($buyer);
-        $transaction->appendChild($agreement);
+
+        $tradeTransaction->appendChild($agreement);
 
         // === (3) Ensuite la livraison ===
         $delivery = $dom->createElement('ram:ApplicableHeaderTradeDelivery');
@@ -163,41 +169,59 @@ class FacturxService
             $deliveryDate->appendChild($occ);
             $delivery->appendChild($deliveryDate);
         }
-        $transaction->appendChild($delivery);
+        $tradeTransaction->appendChild($delivery);
+
 
         // === (4) Enfin settlement ===
         $settlement = $dom->createElement('ram:ApplicableHeaderTradeSettlement');
-        $devise = $facture->getDevise();
+        $devise = $facture->getDevise() ?: 'EUR';
         $settlement->appendChild($dom->createElement('ram:InvoiceCurrencyCode', $devise));
 
-        if ($facture->getPaymentMeans()) {
+        // === Moyens de paiement (virement par défaut ou ceux de la facture) ===
+        if ($facture->getPaymentMeans() && count($facture->getPaymentMeans()) > 0) {
             foreach ($facture->getPaymentMeans() as $paymentMean) {
                 $pm = $dom->createElement('ram:SpecifiedTradeSettlementPaymentMeans');
-                $pm->appendChild($dom->createElement('ram:TypeCode', $paymentMean->getCode() ?: '58'));
-                if ($paymentMean->getInformation())
-                    $account = $dom->createElement('ram:PayeePartyCreditorFinancialAccount');
-                    $account->appendChild($dom->createElement('ram:IBANID', $paymentMean->getInformation()?: "FR7612345678901234567890123")); // remplace par la vraie valeur
-                    $pm->appendChild($account);
+                $pm->appendChild($dom->createElement('ram:TypeCode', $paymentMean->getCode() ?: '42'));
+                $pm->appendChild($dom->createElement('ram:Information', $paymentMean->getInformation() ?: 'Paiement par virement bancaire'));
+
+                $account = $dom->createElement('ram:PayeePartyCreditorFinancialAccount');
+                $iban = $dom->createElement('ram:IBANID', $paymentMean->getInformation() ?: 'FR7630006000011234567890189');
+                $account->appendChild($iban);
+                $account->appendChild($dom->createElement('ram:AccountName', $facture->getFournisseur()->getNom()));
+                $pm->appendChild($account);
+
+                $bank = $dom->createElement('ram:PayeeSpecifiedCreditorFinancialInstitution');
+                $bic = $dom->createElement('ram:BICID', 'AGRIFRPPXXX');
+                $bank->appendChild($bic);
+                // $bank->appendChild($dom->createElement('ram:Name', 'Crédit Agricole'));
+                // $pm->appendChild($bank);
+
                 $settlement->appendChild($pm);
             }
+        } else {
+            // Paiement par défaut : virement bancaire Oroya
+            $pm = $dom->createElement('ram:SpecifiedTradeSettlementPaymentMeans');
+            $pm->appendChild($dom->createElement('ram:TypeCode', '42'));
+            $pm->appendChild($dom->createElement('ram:Information', 'Paiement par virement bancaire'));
+
+            $account = $dom->createElement('ram:PayeePartyCreditorFinancialAccount');
+            $iban = $dom->createElement('ram:IBANID', 'FR7630006000011234567890189');
+            $account->appendChild($iban);
+            $account->appendChild($dom->createElement('ram:AccountName', 'Oroya'));
+            $pm->appendChild($account);
+
+            $bank = $dom->createElement('ram:PayeeSpecifiedCreditorFinancialInstitution');
+            $bic = $dom->createElement('ram:BICID', 'AGRIFRPPXXX');
+            $bank->appendChild($bic);
+            // $bank->appendChild($dom->createElement('ram:Name', 'Crédit Agricole'));
+            // $pm->appendChild($bank);
+
+            $settlement->appendChild($pm);
         }
 
-        $transaction->appendChild($settlement);
-
-        // $terms = $dom->createElement('ram:SpecifiedTradePaymentTerms');
-        // $terms->appendChild($dom->createElement('ram:Description', 'Net 30 jours'));
-        // $dateEcheance = $facture->getDateEcheance();
-        // if ($dateEcheance) {
-        //     $due = $dom->createElement('ram:DueDateDateTime');
-        //     $dstr = $dom->createElement('udt:DateTimeString', $dateEcheance->format('Ymd'));
-        //     $dstr->setAttribute('format', '102');
-        //     $due->appendChild($dstr);
-        //     $terms->appendChild($due);  
-        // }
-        // $settlement->appendChild($terms);
 
 
-        // Taxes document (groupées par taux)
+        // === Taxes document (groupées par taux) ===   
         $taxGroups = [];
         foreach ($facture->getLignes() as $ligne) {
             $r = round($ligne->getTauxTva(), 2);
@@ -209,13 +233,17 @@ class FacturxService
             if (!isset($taxGroups[$rate])) $taxGroups[$rate] = ['base' => 0.0];
             $taxGroups[$rate]['base'] += $ac->getIsCharge() ? $ac->getAmount() : -$ac->getAmount();
         }
+
         $totalTax = 0.0;
         foreach ($taxGroups as $rate => $data) {
             $base = round($data['base'], 2);
             $calc = round($base * $rate / 100.0, 2);
             $totalTax += $calc;
+
             $taxNode = $dom->createElement('ram:ApplicableTradeTax');
-            $taxNode->appendChild($dom->createElement('ram:CalculatedAmount', number_format($calc, 2, '.', '')));
+            $calcAmount = $dom->createElement('ram:CalculatedAmount', number_format($calc, 2, '.', ''));
+            $calcAmount->setAttribute('currencyID', $devise);
+            $taxNode->appendChild($calcAmount);
             $taxNode->appendChild($dom->createElement('ram:TypeCode', 'VAT'));
             $taxNode->appendChild($dom->createElement('ram:BasisAmount', number_format($base, 2, '.', '')));
             $taxNode->appendChild($dom->createElement('ram:CategoryCode', 'S'));
@@ -223,26 +251,18 @@ class FacturxService
             $settlement->appendChild($taxNode);
         }
 
-        foreach ($facture->getAllowanceCharges() as $ac) {
-            $stac = $dom->createElement('ram:SpecifiedTradeAllowanceCharge');
-            $chargeIndicator = $dom->createElement('ram:ChargeIndicator');
-            $chargeIndicator->appendChild($dom->createElement('udt:Indicator', $ac->getIsCharge() ? 'true' : 'false'));
-            $stac->appendChild($chargeIndicator);
+        // === Conditions de paiement ===
+        $terms = $dom->createElement('ram:SpecifiedTradePaymentTerms');
+        $dueDate = $facture->getDateEcheance() ?? "30 jours";
+        $dueDateNode = $dom->createElement('ram:DueDateDateTime');
+        $dateString = $dom->createElement('udt:DateTimeString', $dueDate->format('Ymd'));
+        $dateString->setAttribute('format', '102');
+        $dueDateNode->appendChild($dateString);
+        $terms->appendChild($dueDateNode);
+        // $terms->appendChild($dom->createElement('ram:Description', 'Paiement à 30 jours fin de mois'));
+        $settlement->appendChild($terms);
 
-            $stac->appendChild($dom->createElement('ram:ActualAmount', number_format($ac->getAmount(), 2, '.', '')));
-            if ($ac->getReason())
-                $stac->appendChild($dom->createElement('ram:Reason', $ac->getReason()));
-
-            $cat = $dom->createElement('ram:CategoryTradeTax');
-            $cat->appendChild($dom->createElement('ram:TypeCode', 'VAT'));
-            $cat->appendChild($dom->createElement('ram:CategoryCode', 'S'));
-            $cat->appendChild($dom->createElement('ram:RateApplicablePercent', number_format($ac->getTaxRate(), 2, '.', '')));
-            $stac->appendChild($cat);
-
-            $settlement->appendChild($stac);
-        }
-
-        // Calcul cohérent pour les totaux
+        // === Totaux ===
         $totalHT = 0.0;
         $totalAllow = 0.0;
         $totalCharge = 0.0;
@@ -254,24 +274,31 @@ class FacturxService
             else $totalAllow += $ac->getAmount();
         }
 
-        $monetary = $dom->createElement('ram:SpecifiedTradeSettlementHeaderMonetarySummation');
         $taxBasis = round($totalHT - $totalAllow + $totalCharge, 2);
         $taxTotal = round($totalTax, 2);
         $ttc = round($taxBasis + $taxTotal, 2);
 
-        $root->appendChild($transaction);
         $monetary = $dom->createElement('ram:SpecifiedTradeSettlementHeaderMonetarySummation');
-        $monetary->appendChild($dom->createElement('ram:LineTotalAmount', number_format($totalHT, 2, '.', '')));
-        $monetary->appendChild($dom->createElement('ram:ChargeTotalAmount', number_format($totalCharge, 2, '.', '')));
-        $monetary->appendChild($dom->createElement('ram:AllowanceTotalAmount', number_format($totalAllow, 2, '.', '')));
-        $monetary->appendChild($dom->createElement('ram:TaxBasisTotalAmount', number_format($taxBasis, 2, '.', '')));
-        $monetary->appendChild($dom->createElement('ram:TaxTotalAmount', number_format($taxTotal, 2, '.', '')));
-        $grand = $dom->createElement('ram:GrandTotalAmount', number_format($ttc, 2, '.', ''));
-        $monetary->appendChild($grand);
-        $due = $dom->createElement('ram:DuePayableAmount', number_format($ttc, 2, '.', ''));
-        $monetary->appendChild($due);
+        $elements = [
+            'LineTotalAmount' => $totalHT,
+            'ChargeTotalAmount' => $totalCharge,
+            'AllowanceTotalAmount' => $totalAllow,
+            'TaxBasisTotalAmount' => $taxBasis,
+            'TaxTotalAmount' => $taxTotal,
+            'GrandTotalAmount' => $ttc,
+            'DuePayableAmount' => $ttc,
+        ];
+        foreach ($elements as $tag => $value) {
+            $node = $dom->createElement('ram:' . $tag, number_format($value, 2, '.', ''));
+            $node->setAttribute('currencyID', $devise);
+            $monetary->appendChild($node);
+        }
         $settlement->appendChild($monetary);
-        
+
+        // rattacher settlement à la transaction
+        $tradeTransaction->appendChild($settlement);
+
+
 
         // Écriture fichier XML
         $xmlDir = $this->projectDir . '/public/factures/xml';
@@ -294,10 +321,16 @@ class FacturxService
         $xmlContent = file_get_contents($xmlFile);
 
         // PDF
-        $html = $this->twig->render('facture/pdf_template.html.twig', ['facture' => $facture]);
+        $html = $this->twig->render('facture/pdfA3.html.twig', ['facture' => $facture]);
         $tmpPdf = tempnam(sys_get_temp_dir(), 'fx_') . '.pdf';
 
-        $dompdf = new Dompdf();
+        $options = new Options();
+        $options->set('isHtml5ParserEnabled', true);
+        $options->set('isFontSubsettingEnabled', true);
+        $options->set('fontDir', __DIR__ . '/public/fonts'); // -> adapte le chemin selon ton projet
+        $options->set('fontCache', __DIR__ . '/public/fonts');
+        
+        $dompdf = new Dompdf($options);
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();

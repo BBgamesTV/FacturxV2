@@ -25,7 +25,7 @@ class Facture
     #[ORM\Column(type: "string", length: 50)]
     private string $numero_facture;
 
-    #[ORM\Column(type: "date")]
+    #[ORM\Column(type: "datetime")]
     private \DateTimeInterface $date_facture;
 
     #[ORM\Column(type: "string", length: 10)]
